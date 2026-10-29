@@ -1,0 +1,8 @@
+{
+  "appId": "cm.patrouille.foret",
+  "appName": "Patrouille forêt",
+  "webDir": "www",
+  "android": {
+    "useLegacyBridge": true
+  }
+}

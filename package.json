@@ -1,0 +1,15 @@
+{
+  "name": "patrouille-foret",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Suivi de patrouilles en forêt, hors ligne, avec trace GPS en arrière-plan",
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/local-notifications": "^7.0.0",
+    "@capacitor-community/background-geolocation": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}
