@@ -10,6 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Ranger les fichiers dans leurs dossiers
+        run: |
+          mkdir -p www scripts
+          if [ -f index.html ]; then mv index.html www/index.html; fi
+          if [ -f patch-android.js ]; then mv patch-android.js scripts/patch-android.js; fi
+          ls -R www scripts
       - uses: actions/setup-node@v4
         with:
           node-version: 20
