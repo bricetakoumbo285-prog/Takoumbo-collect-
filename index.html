@@ -106,7 +106,13 @@ function showErr(msg){
 addEventListener("error", e => showErr(e.message || "inconnue"));
 addEventListener("unhandledrejection", e => showErr((e.reason && e.reason.message) || String(e.reason)));
 
-const VERSION = "5";
+const VERSION = "6";
+const AUTHOR = "Takoumbo Kemadze Brice";
+const WA_NUM = "237698864211", WA_SHOW = "+237 698 864 211";
+function openWA(){
+  const u = "https://wa.me/" + WA_NUM + "?text=" + encodeURIComponent("Bonjour, à propos de l'application Patrouille forêt");
+  if(NATIVE) location.href = u; else window.open(u, "_blank");
+}
 /* ---------- Version native (Capacitor) ---------- */
 const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
 function getPlugin(n){
@@ -171,6 +177,115 @@ function toGeoJSON(p){
   if(p.track.length>1) f.push({type:"Feature",properties:{kind:"patrouille",agent:p.agent,equipe:p.team,mode:p.mode,debut:new Date(p.start).toISOString(),fin:p.end?new Date(p.end).toISOString():null,distance_m:Math.round(trackLen(p.track))},geometry:{type:"LineString",coordinates:p.track.map(q=>[q.lon,q.lat])}});
   p.obs.filter(x=>x.lat!=null).forEach(x=>f.push({type:"Feature",properties:{kind:"observation",heure:new Date(x.t).toISOString(),categorie:x.cat,type:x.type,espece:x.sp,nombre:x.n,notes:x.note,precision_m:x.acc!=null?Math.round(x.acc):null},geometry:{type:"Point",coordinates:[x.lon,x.lat]}}));
   return JSON.stringify({type:"FeatureCollection",features:f},null,1);
+}
+
+/* ---------- Shapefile (SHP) dans une archive ZIP ---------- */
+const WGS84_PRJ = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+const U8 = str => new TextEncoder().encode(str);
+function concat(arrs){ let n = 0; arrs.forEach(a=>n+=a.length); const o = new Uint8Array(n); let p = 0; arrs.forEach(a=>{ o.set(a,p); p+=a.length; }); return o; }
+function crc32(b){
+  let t = crc32.t;
+  if(!t){ t = crc32.t = new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } }
+  let c = 0xFFFFFFFF; for(let i=0;i<b.length;i++) c = t[(c^b[i])&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function zipStore(files, dt){
+  const time = (dt.getHours()<<11)|(dt.getMinutes()<<5)|(dt.getSeconds()>>1);
+  const date = ((Math.max(dt.getFullYear(),1980)-1980)<<9)|((dt.getMonth()+1)<<5)|dt.getDate();
+  const parts = [], cd = []; let off = 0;
+  files.forEach(f=>{
+    const name = U8(f.name), crc = crc32(f.bytes), size = f.bytes.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,time,true); lh.setUint16(12,date,true); lh.setUint32(14,crc,true); lh.setUint32(18,size,true); lh.setUint32(22,size,true);
+    lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer), name, f.bytes);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true);
+    ch.setUint16(12,time,true); ch.setUint16(14,date,true); ch.setUint32(16,crc,true); ch.setUint32(20,size,true); ch.setUint32(24,size,true);
+    ch.setUint16(28,name.length,true); ch.setUint32(42,off,true);
+    cd.push(new Uint8Array(ch.buffer), name);
+    off += 30 + name.length + size;
+  });
+  let cdSize = 0; cd.forEach(x=>cdSize+=x.length);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true); end.setUint32(12,cdSize,true); end.setUint32(16,off,true);
+  return concat(parts.concat(cd,[new Uint8Array(end.buffer)]));
+}
+function fitBytes(v, n){
+  const b = U8(String(v==null?"":v)); if(b.length<=n) return b;
+  let e = n; while(e>0 && (b[e]&0xC0)===0x80) e--; return b.slice(0,e);
+}
+function dbfFile(fields, rows, d){
+  const recLen = 1 + fields.reduce((a,f)=>a+f.l,0), hdrLen = 32 + 32*fields.length + 1;
+  const out = new Uint8Array(hdrLen + recLen*rows.length + 1), v = new DataView(out.buffer);
+  out[0]=3; out[1]=d.getFullYear()-1900; out[2]=d.getMonth()+1; out[3]=d.getDate();
+  v.setUint32(4,rows.length,true); v.setUint16(8,hdrLen,true); v.setUint16(10,recLen,true);
+  fields.forEach((f,i)=>{ const o = 32+32*i; out.set(U8(f.n).slice(0,10),o); out[o+11]=f.t.charCodeAt(0); out[o+16]=f.l; });
+  out[32+32*fields.length] = 0x0D;
+  rows.forEach((r,ri)=>{
+    let o = hdrLen + recLen*ri; out[o++] = 0x20;
+    fields.forEach((f,fi)=>{
+      const val = r[fi]; let b;
+      if(f.t==="N"){ const t = (val==null||val==="") ? "" : String(Math.round(val)); b = U8(t.padStart(f.l," ").slice(-f.l)); }
+      else b = fitBytes(val, f.l);
+      out.fill(0x20,o,o+f.l); out.set(b,o); o += f.l;
+    });
+  });
+  out[out.length-1] = 0x1A;
+  return out;
+}
+function bboxOf(c){
+  let a=Infinity,b=Infinity,x=-Infinity,y=-Infinity;
+  c.forEach(p=>{ if(p[0]<a)a=p[0]; if(p[0]>x)x=p[0]; if(p[1]<b)b=p[1]; if(p[1]>y)y=p[1]; });
+  return [a,b,x,y];
+}
+function shpHeader(type, words, bb){
+  const h = new DataView(new ArrayBuffer(100));
+  h.setInt32(0,9994,false); h.setInt32(24,words,false); h.setInt32(28,1000,true); h.setInt32(32,type,true);
+  for(let i=0;i<4;i++) h.setFloat64(36+8*i,bb[i],true);
+  return new Uint8Array(h.buffer);
+}
+function shapePoints(pts){
+  const bb = bboxOf(pts), recs = [], idx = [];
+  pts.forEach((p,i)=>{
+    const r = new DataView(new ArrayBuffer(28));
+    r.setInt32(0,i+1,false); r.setInt32(4,10,false); r.setInt32(8,1,true); r.setFloat64(12,p[0],true); r.setFloat64(20,p[1],true);
+    recs.push(new Uint8Array(r.buffer));
+    const x = new DataView(new ArrayBuffer(8)); x.setInt32(0,(100+28*i)/2,false); x.setInt32(4,10,false); idx.push(new Uint8Array(x.buffer));
+  });
+  return {shp:concat([shpHeader(1,(100+28*pts.length)/2,bb)].concat(recs)), shx:concat([shpHeader(1,(100+8*pts.length)/2,bb)].concat(idx))};
+}
+function shapeLine(c){
+  const n = c.length, cl = 48 + 16*n, bb = bboxOf(c), r = new DataView(new ArrayBuffer(8+cl));
+  r.setInt32(0,1,false); r.setInt32(4,cl/2,false); r.setInt32(8,3,true);
+  for(let i=0;i<4;i++) r.setFloat64(12+8*i,bb[i],true);
+  r.setInt32(44,1,true); r.setInt32(48,n,true); r.setInt32(52,0,true);
+  c.forEach((p,i)=>{ r.setFloat64(56+16*i,p[0],true); r.setFloat64(64+16*i,p[1],true); });
+  const x = new DataView(new ArrayBuffer(8)); x.setInt32(0,50,false); x.setInt32(4,cl/2,false);
+  return {shp:concat([shpHeader(3,(100+8+cl)/2,bb), new Uint8Array(r.buffer)]), shx:concat([shpHeader(3,(100+8)/2,bb), new Uint8Array(x.buffer)])};
+}
+function toShapefileZip(p){
+  const files = [], when = new Date(p.start), pad = n => String(n).padStart(2,"0");
+  const add = (base, sh, fields, rows) => {
+    files.push({name:base+".shp",bytes:sh.shp},{name:base+".shx",bytes:sh.shx},{name:base+".dbf",bytes:dbfFile(fields,rows,when)},
+      {name:base+".prj",bytes:U8(WGS84_PRJ)},{name:base+".cpg",bytes:U8("UTF-8")});
+  };
+  const pts = p.obs.filter(o=>o.lat!=null);
+  if(pts.length){
+    add("observations_points", shapePoints(pts.map(o=>[o.lon,o.lat])),
+      [{n:"DATE",t:"C",l:10},{n:"HEURE",t:"C",l:8},{n:"CATEGORIE",t:"C",l:30},{n:"TYPE",t:"C",l:40},{n:"ESPECE",t:"C",l:30},{n:"NOMBRE",t:"N",l:5},{n:"PRECISION",t:"N",l:6},{n:"NOTES",t:"C",l:100},{n:"AGENT",t:"C",l:40}],
+      pts.map(o=>{ const d = new Date(o.t);
+        return [d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()), pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds()),
+          (CATS[o.cat]||{}).label||o.cat, o.type, o.sp||"", o.n, o.acc, o.note||"", p.agent||""]; }));
+  }
+  if(p.track.length>1){
+    const iso = t => t ? new Date(t).toISOString().slice(0,19) : "";
+    add("trace_ligne", shapeLine(p.track.map(q=>[q.lon,q.lat])),
+      [{n:"DEBUT",t:"C",l:19},{n:"FIN",t:"C",l:19},{n:"AGENT",t:"C",l:40},{n:"EQUIPE",t:"C",l:40},{n:"MODE",t:"C",l:20},{n:"DIST_M",t:"N",l:10},{n:"NB_PTS",t:"N",l:7}],
+      [[iso(p.start), iso(p.end), p.agent||"", p.team||"", p.mode||"", trackLen(p.track), p.track.length]]);
+  }
+  return files.length ? zipStore(files, when) : null;
 }
 /*ENDPURE*/
 
@@ -296,11 +411,12 @@ function getPos(){
 }
 
 /* ---------- Carte hors ligne (tracé sans fond de carte) ---------- */
-function drawMap(cv, p, live){
-  const dpr = devicePixelRatio||1, w = cv.clientWidth, h = cv.clientHeight;
+const LIGHT = {"--card":"#FFFFFF","--muted":"#55625B","--gps":"#1F5F8B","--ok":"#2F6B3A","--ink":"#17221D","--faune":"#8A4B1F","--infractions":"#A3262A","--amber":"#8A6A00"};
+function drawMap(cv, p, live, W, H){
+  const dpr = W ? 1 : (devicePixelRatio||1), w = W || cv.clientWidth, h = H || cv.clientHeight;
   cv.width = w*dpr; cv.height = h*dpr;
   const g = cv.getContext("2d"); g.scale(dpr,dpr);
-  const cs = getComputedStyle(document.documentElement), V = n => cs.getPropertyValue(n).trim();
+  const cs = getComputedStyle(document.documentElement), V = W ? (n => LIGHT[n]||"#000") : (n => cs.getPropertyValue(n).trim());
   g.fillStyle = V("--card"); g.fillRect(0,0,w,h);
   const pts = p.track.map(q=>[q.lat,q.lon]).concat(p.obs.filter(o=>o.lat!=null).map(o=>[o.lat,o.lon]));
   if(live) pts.push([live.lat,live.lon]);
@@ -400,16 +516,22 @@ $("#oPhoto").addEventListener("change", async ev=>{
 /* ---------- Export ---------- */
 const stamp = p => { const d=new Date(p.start), z=n=>String(n).padStart(2,"0"); return "patrouille_"+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"_"+z(d.getHours())+z(d.getMinutes()); };
 function mkData(p){
-  const n = stamp(p);
-  return [
+  const n = stamp(p), out = [
     {name:n+".gpx", type:"application/gpx+xml", text:toGPX(p)},
     {name:n+".csv", type:"text/csv", text:toCSV(p)},
     {name:n+".geojson", type:"application/geo+json", text:toGeoJSON(p)},
     {name:n+".json", type:"application/json", text:JSON.stringify(p)}
   ];
+  const z = toShapefileZip(p);
+  if(z) out.push({name:n+"_shp.zip", type:"application/zip", bytes:z});
+  return out;
+}
+function b64(bytes){
+  let s = ""; for(let i=0;i<bytes.length;i+=8192) s += String.fromCharCode.apply(null, bytes.subarray(i,i+8192));
+  return btoa(s);
 }
 function download(d){
-  const f = new File([d.text], d.name, {type:d.type});
+  const f = new File([d.bytes || d.text], d.name, {type:d.type});
   const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
 }
@@ -419,32 +541,102 @@ async function nativeShare(list, title){
   if(!FS || !SH) throw new Error("Plugins de partage introuvables dans l'application");
   const uris = [];
   for(const d of list){
-    const r = await FS.writeFile({path:d.name, data:d.text, directory:"CACHE", encoding:"utf8"});
+    const opt = d.bytes ? {path:d.name, data:b64(d.bytes), directory:"CACHE"} : {path:d.name, data:d.text, directory:"CACHE", encoding:"utf8"};
+    const r = await FS.writeFile(opt);
     uris.push(r.uri);
   }
   await SH.share({title:title||"Patrouille", dialogTitle:"Partager", files:uris});
+}
+function reportErr(e){
+  const m = (e && e.message) || String(e);
+  if((e && e.name==="AbortError") || /cancel/i.test(m)) return;
+  showErr("Partage impossible : " + m);
 }
 async function outFiles(list, title){
   try{
     if(NATIVE){ await nativeShare(list, title); return; }
     if(navigator.canShare){
-      const files = list.map(d=>new File([d.text], d.name, {type:d.type}));
+      const files = list.map(d=>new File([d.bytes || d.text], d.name, {type:d.type}));
       if(navigator.canShare({files})){ await navigator.share({files, title:title||"Patrouille"}); return; }
     }
     list.forEach(download);
-  }catch(e){
-    const m = (e && e.message) || String(e);
-    if(e && e.name==="AbortError" || /cancel/i.test(m)) return;
-    showErr("Partage impossible : " + m);
-  }
+  }catch(e){ reportErr(e); }
+}
+async function shareText(text, title){
+  try{
+    if(NATIVE){
+      const SH = getPlugin("Share"); if(!SH) throw new Error("Plugin de partage introuvable");
+      await SH.share({title:title, text:text, dialogTitle:"Envoyer le rapport"}); return;
+    }
+    if(navigator.share){ await navigator.share({title:title, text:text}); return; }
+    if(navigator.clipboard){ await navigator.clipboard.writeText(text); alert("Résumé copié. Collez-le dans WhatsApp."); return; }
+    alert(text);
+  }catch(e){ reportErr(e); }
 }
 function exportP(id, mode){
   const p = patrols.find(x=>x.id===id); if(!p) return;
-  outFiles(mkData(p).filter(d=>d.name.endsWith("."+mode)), "Patrouille");
+  const list = mkData(p).filter(d=>d.name.endsWith("."+mode));
+  if(!list.length){ showErr("Aucun point à exporter pour ce format (pas de position enregistrée)."); return; }
+  outFiles(list, "Patrouille");
 }
 function shareP(id){
   const p = patrols.find(x=>x.id===id); if(!p) return;
-  outFiles(mkData(p).filter(d=>!d.name.endsWith(".json")), "Patrouille");
+  outFiles(mkData(p).filter(d=>/\.(gpx|csv|geojson)$/.test(d.name)), "Patrouille");
+}
+
+/* ---------- Mini rapport ---------- */
+function catSummary(p){
+  const c = {}; p.obs.forEach(o=>{ c[o.cat] = (c[o.cat]||0) + 1; });
+  return Object.keys(CATS).filter(k=>c[k]).map(k=>({label:CATS[k].label, n:c[k]}));
+}
+function coordTxt(o){ return o.lat==null ? "sans position" : o.lat.toFixed(5)+", "+o.lon.toFixed(5)+(o.acc!=null?" (± "+Math.round(o.acc)+" m)":""); }
+function obsLine(o){
+  return new Date(o.t).toLocaleTimeString("fr-FR",{timeStyle:"short"}) + " · " + o.type +
+    (o.sp && o.sp!=="Non précisée" ? " · " + o.sp : "") + (o.n>1 ? " × " + o.n : "") + (o.note ? " · " + o.note : "") + " · " + coordTxt(o);
+}
+function reportTextOf(p){
+  const L = [];
+  L.push("RAPPORT DE PATROUILLE");
+  L.push("Début : " + fdate(p.start) + (p.end ? "  Fin : " + fdate(p.end) : ""));
+  L.push("Durée : " + fmtDur(activeMs(p, Date.now())) + " · Distance : " + fmtKm(trackLen(p.track)));
+  if(p.agent) L.push("Agent : " + p.agent + (p.team ? " · Équipe : " + p.team : ""));
+  if(p.area) L.push("Secteur : " + p.area);
+  L.push("Mode : " + p.mode + (p.objective ? " · Objectif : " + p.objective : ""));
+  L.push("");
+  L.push("Observations : " + p.obs.length);
+  catSummary(p).forEach(c=>L.push("- " + c.label + " : " + c.n));
+  if(p.obs.length){ L.push(""); L.push("Détail :"); p.obs.forEach((o,i)=>L.push((i+1) + ". " + obsLine(o))); }
+  L.push("");
+  L.push("Établi avec l'application Patrouille forêt");
+  L.push(AUTHOR + " · WhatsApp " + WA_SHOW);
+  return L.join("\n");
+}
+function reportText(id){
+  const p = patrols.find(x=>x.id===id); if(p) shareText(reportTextOf(p), "Rapport de patrouille");
+}
+function reportHTMLOf(p){
+  let img = "";
+  try{ const cv = document.createElement("canvas"); drawMap(cv, p, null, 720, 420); img = cv.toDataURL("image/png"); }catch(e){}
+  const rows = p.obs.map((o,i)=>`<tr><td>${i+1}</td><td>${esc(new Date(o.t).toLocaleTimeString("fr-FR",{timeStyle:"short"}))}</td><td>${esc((CATS[o.cat]||{}).label||o.cat)}</td>
+    <td>${esc(o.type)}${o.sp&&o.sp!=="Non précisée"?"<br>"+esc(o.sp):""}${o.n>1?" × "+o.n:""}${o.note?"<br><i>"+esc(o.note)+"</i>":""}</td><td>${esc(coordTxt(o))}</td>
+    <td>${o.photo?`<img src="${o.photo}" alt="">`:""}</td></tr>`).join("");
+  const cats = catSummary(p).map(c=>`<li>${esc(c.label)} : <b>${c.n}</b></li>`).join("");
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport de patrouille</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;color:#17221D;max-width:760px;margin:0 auto;padding:16px}h1{color:#24533F;font-size:24px;margin:0 0 4px}h2{color:#24533F;font-size:18px;margin:22px 0 6px}
+.meta{color:#55625B;margin:0 0 12px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #CBD2C4;padding:6px 8px;vertical-align:top;text-align:left;font-size:14px}th{background:#EFF1E9}
+.k{display:flex;gap:10px;flex-wrap:wrap}.k div{flex:1;min-width:120px;border:1px solid #CBD2C4;border-radius:8px;padding:8px;text-align:center}.k b{display:block;font-size:20px}
+img{max-width:100%}td img{width:110px;border-radius:4px}footer{margin-top:26px;border-top:1px solid #CBD2C4;padding-top:10px;color:#55625B;font-size:14px}</style></head><body>
+<h1>Rapport de patrouille</h1>
+<p class="meta">${esc(fdate(p.start))}${p.end?" → "+esc(fdate(p.end)):""}<br>${p.agent?"Agent : "+esc(p.agent)+(p.team?" · Équipe : "+esc(p.team):"")+"<br>":""}${p.area?"Secteur : "+esc(p.area)+"<br>":""}Mode : ${esc(p.mode)}${p.objective?" · Objectif : "+esc(p.objective):""}</p>
+<div class="k"><div><b>${esc(fmtDur(activeMs(p,Date.now())))}</b>durée</div><div><b>${esc(fmtKm(trackLen(p.track)))}</b>distance</div><div><b>${p.obs.length}</b>observations</div></div>
+${img?`<h2>Tracé</h2><img src="${img}" alt="Tracé de la patrouille">`:""}
+<h2>Synthèse</h2>${cats?"<ul>"+cats+"</ul>":"<p>Aucune observation.</p>"}
+${p.obs.length?`<h2>Observations</h2><table><tr><th>N°</th><th>Heure</th><th>Catégorie</th><th>Détail</th><th>Position</th><th>Photo</th></tr>${rows}</table>`:""}
+<footer>Établi avec l'application Patrouille forêt<br>${esc(AUTHOR)} · WhatsApp ${esc(WA_SHOW)}</footer></body></html>`;
+}
+function reportHtml(id){
+  const p = patrols.find(x=>x.id===id); if(!p) return;
+  outFiles([{name:stamp(p)+"_rapport.html", type:"text/html", text:reportHTMLOf(p)}], "Rapport de patrouille");
 }
 async function delPatrol(id){
   if(!confirm("Supprimer définitivement cette patrouille ?")) return;
@@ -501,9 +693,12 @@ function rDetail(v){
     <div class="note">${p.agent?"Agent : "+esc(p.agent)+"<br>":""}${p.team?"Équipe : "+esc(p.team)+"<br>":""}${p.objective?"Objectif : "+esc(p.objective):""}</div></div>
     <div class="stats"><div class="stat"><b>${fmtDur(activeMs(p,Date.now()))}</b><span>durée</span></div><div class="stat"><b>${fmtKm(trackLen(p.track))}</b><span>distance</span></div><div class="stat"><b>${p.obs.length}</b><span>observations</span></div></div>
     <canvas id="map" aria-label="Tracé de la patrouille"></canvas>
+    <h2>Rapport</h2>
+    <div class="row"><button class="btn" onclick="reportText('${p.id}')">Résumé (WhatsApp)</button><button class="btn alt" onclick="reportHtml('${p.id}')">Rapport complet</button></div>
     <h2>Exporter</h2>
     <button class="btn" onclick="shareP('${p.id}')">Partager (GPX, CSV, GeoJSON)</button>
     <div class="row"><button class="btn alt" onclick="exportP('${p.id}','gpx')">GPX</button><button class="btn alt" onclick="exportP('${p.id}','csv')">CSV</button><button class="btn alt" onclick="exportP('${p.id}','geojson')">GeoJSON</button></div>
+    <div class="row"><button class="btn alt" onclick="exportP('${p.id}','zip')">Shapefile (SHP, ZIP)</button></div>
     <h2>Observations</h2>${p.obs.length?p.obs.map(obsHTML).join(""):`<p class="note">Aucune observation.</p>`}
     <button class="btn danger" style="margin-top:16px" onclick="delPatrol('${p.id}')">Supprimer cette patrouille</button>`;
   requestAnimationFrame(()=>drawMap($("#map"),p,null));
@@ -515,7 +710,9 @@ function rCfg(v){
     <label for="cArea">Aire protégée ou secteur</label><input id="cArea" value="${esc(cfg.area)}">
     <button class="btn" style="margin-top:14px" onclick="cfg.agent=$('#cAgent').value.trim();cfg.team=$('#cTeam').value.trim();cfg.area=$('#cArea').value.trim();saveCfg();this.textContent='Enregistré'">Enregistrer</button></div>
     <h2>Sauvegarde</h2><p class="note">Sauvegardez régulièrement vos patrouilles : si le téléphone est perdu ou réinitialisé, elles sont perdues.</p>
-    <button class="btn alt" onclick="exportAll()">Exporter toutes les patrouilles (JSON)</button>`;
+    <button class="btn alt" onclick="exportAll()">Exporter toutes les patrouilles (JSON)</button>
+    <h2>À propos</h2><div class="card"><b>Patrouille forêt</b><br>Application de ${esc(AUTHOR)}<div class="note">WhatsApp : ${esc(WA_SHOW)}</div>
+    <button class="btn" style="margin-top:10px" onclick="openWA()">Contacter sur WhatsApp</button></div>`;
 }
 function diag(){
   const m = /Chrome\/(\d+)/.exec(navigator.userAgent);
@@ -526,6 +723,8 @@ function render(){
   document.querySelectorAll("#nav button").forEach(b=>{ if(b.dataset.v===cv) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   ({home:rHome,hist:rHist,detail:rDetail,cfg:rCfg})[view](v);
   const dg = document.createElement("p"); dg.id = "diag"; dg.className = "note"; dg.textContent = diag(); v.appendChild(dg);
+  const br = document.createElement("p"); br.className = "note";
+  br.innerHTML = "Application de " + esc(AUTHOR) + " · <a href=\"#\" style=\"color:var(--canopy)\" onclick=\"openWA();return false\">WhatsApp " + esc(WA_SHOW) + "</a>"; v.appendChild(br);
   window.scrollTo(0,0);
 }
 document.querySelectorAll("dialog").forEach(d=>{
