@@ -4,10 +4,12 @@
   "private": true,
   "description": "Suivi de patrouilles en forêt, hors ligne, avec trace GPS en arrière-plan",
   "dependencies": {
+    "@capacitor-community/background-geolocation": "latest",
     "@capacitor/android": "^7.0.0",
     "@capacitor/core": "^7.0.0",
+    "@capacitor/filesystem": "^7.0.0",
     "@capacitor/local-notifications": "^7.0.0",
-    "@capacitor-community/background-geolocation": "latest"
+    "@capacitor/share": "^7.0.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.0.0"

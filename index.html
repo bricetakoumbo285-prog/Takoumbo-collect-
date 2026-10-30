@@ -106,7 +106,7 @@ function showErr(msg){
 addEventListener("error", e => showErr(e.message || "inconnue"));
 addEventListener("unhandledrejection", e => showErr((e.reason && e.reason.message) || String(e.reason)));
 
-const VERSION = "4";
+const VERSION = "5";
 /* ---------- Version native (Capacitor) ---------- */
 const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
 function getPlugin(n){
@@ -399,38 +399,59 @@ $("#oPhoto").addEventListener("change", async ev=>{
 
 /* ---------- Export ---------- */
 const stamp = p => { const d=new Date(p.start), z=n=>String(n).padStart(2,"0"); return "patrouille_"+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"_"+z(d.getHours())+z(d.getMinutes()); };
-function mkFiles(p){
+function mkData(p){
   const n = stamp(p);
   return [
-    new File([toGPX(p)], n+".gpx", {type:"application/gpx+xml"}),
-    new File([toCSV(p)], n+".csv", {type:"text/csv"}),
-    new File([toGeoJSON(p)], n+".geojson", {type:"application/geo+json"}),
-    new File([JSON.stringify(p)], n+".json", {type:"application/json"})
+    {name:n+".gpx", type:"application/gpx+xml", text:toGPX(p)},
+    {name:n+".csv", type:"text/csv", text:toCSV(p)},
+    {name:n+".geojson", type:"application/geo+json", text:toGeoJSON(p)},
+    {name:n+".json", type:"application/json", text:JSON.stringify(p)}
   ];
 }
-function download(f){
+function download(d){
+  const f = new File([d.text], d.name, {type:d.type});
   const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
 }
+/* Android : écrit les fichiers dans le cache puis ouvre le partage du téléphone */
+async function nativeShare(list, title){
+  const FS = getPlugin("Filesystem"), SH = getPlugin("Share");
+  if(!FS || !SH) throw new Error("Plugins de partage introuvables dans l'application");
+  const uris = [];
+  for(const d of list){
+    const r = await FS.writeFile({path:d.name, data:d.text, directory:"CACHE", encoding:"utf8"});
+    uris.push(r.uri);
+  }
+  await SH.share({title:title||"Patrouille", dialogTitle:"Partager", files:uris});
+}
+async function outFiles(list, title){
+  try{
+    if(NATIVE){ await nativeShare(list, title); return; }
+    if(navigator.canShare){
+      const files = list.map(d=>new File([d.text], d.name, {type:d.type}));
+      if(navigator.canShare({files})){ await navigator.share({files, title:title||"Patrouille"}); return; }
+    }
+    list.forEach(download);
+  }catch(e){
+    const m = (e && e.message) || String(e);
+    if(e && e.name==="AbortError" || /cancel/i.test(m)) return;
+    showErr("Partage impossible : " + m);
+  }
+}
 function exportP(id, mode){
   const p = patrols.find(x=>x.id===id); if(!p) return;
-  mkFiles(p).forEach(f=>{ if(mode==="all" || f.name.endsWith("."+mode)) download(f); });
+  outFiles(mkData(p).filter(d=>d.name.endsWith("."+mode)), "Patrouille");
 }
-async function shareP(id){
+function shareP(id){
   const p = patrols.find(x=>x.id===id); if(!p) return;
-  const files = mkFiles(p).filter(f=>/\.(csv|json)$/.test(f.name));
-  try{
-    if(navigator.canShare && navigator.canShare({files})){ await navigator.share({files, title:"Patrouille"}); return; }
-  }catch(e){ if(e.name==="AbortError") return; }
-  mkFiles(p).forEach(download);
+  outFiles(mkData(p).filter(d=>!d.name.endsWith(".json")), "Patrouille");
 }
 async function delPatrol(id){
   if(!confirm("Supprimer définitivement cette patrouille ?")) return;
   await delP(id); patrols = patrols.filter(p=>p.id!==id); view = "hist"; render();
 }
 async function exportAll(){
-  const f = new File([JSON.stringify({export:new Date().toISOString(), patrols})], "patrouilles_sauvegarde.json", {type:"application/json"});
-  download(f);
+  outFiles([{name:"patrouilles_sauvegarde.json", type:"application/json", text:JSON.stringify({export:new Date().toISOString(), patrols})}], "Sauvegarde des patrouilles");
 }
 
 /* ---------- Écrans ---------- */
@@ -481,7 +502,7 @@ function rDetail(v){
     <div class="stats"><div class="stat"><b>${fmtDur(activeMs(p,Date.now()))}</b><span>durée</span></div><div class="stat"><b>${fmtKm(trackLen(p.track))}</b><span>distance</span></div><div class="stat"><b>${p.obs.length}</b><span>observations</span></div></div>
     <canvas id="map" aria-label="Tracé de la patrouille"></canvas>
     <h2>Exporter</h2>
-    <button class="btn" onclick="shareP('${p.id}')">Partager (CSV et JSON)</button>
+    <button class="btn" onclick="shareP('${p.id}')">Partager (GPX, CSV, GeoJSON)</button>
     <div class="row"><button class="btn alt" onclick="exportP('${p.id}','gpx')">GPX</button><button class="btn alt" onclick="exportP('${p.id}','csv')">CSV</button><button class="btn alt" onclick="exportP('${p.id}','geojson')">GeoJSON</button></div>
     <h2>Observations</h2>${p.obs.length?p.obs.map(obsHTML).join(""):`<p class="note">Aucune observation.</p>`}
     <button class="btn danger" style="margin-top:16px" onclick="delPatrol('${p.id}')">Supprimer cette patrouille</button>`;
