@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#24533F">
+<title>Patrouille forêt</title>
+<style>
+:root{
+  --bg:#EFF1E9; --card:#FAFBF6; --ink:#17221D; --muted:#55625B; --line:#CBD2C4; --canopy:#24533F; --onc:#fff;
+  --faune:#8A4B1F; --infractions:#A3262A; --amber:#8A6A00; --gps:#1F5F8B; --ok:#2F6B3A; --warn:#B26A00;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#121A16; --card:#1B2620; --ink:#E6EBE4; --muted:#A3B0A8; --line:#33423A; --canopy:#7DBB82; --onc:#10201A;
+    --faune:#D49A68; --infractions:#E27B7E; --amber:#E0B84A; --gps:#7DB4DE; --ok:#7DBB82; --warn:#E0A44A;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:calc(17px*var(--k,1))/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:max(12px,env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+h1{margin:0;font:700 calc(22px*var(--k,1))/1.2 "Noto Serif",Georgia,serif;color:var(--canopy)}
+h2{margin:18px 0 8px;font:600 calc(18px*var(--k,1))/1.3 "Noto Serif",Georgia,serif}
+main{padding:12px 14px calc(84px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;padding:10px 16px;font:600 calc(17px*var(--k,1))/1.2 inherit;font-family:inherit;color:var(--onc);background:var(--canopy);border:0;border-radius:10px;cursor:pointer}
+.btn.big{min-height:68px;font-size:calc(19px*var(--k,1))}
+.btn.alt{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.danger{background:var(--infractions);color:#fff}
+.btn:focus-visible,.nav button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--canopy);outline-offset:2px}
+.btn[disabled]{opacity:.5}
+.row{display:flex;gap:10px;margin-top:10px}.row>*{flex:1}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 6px;text-align:center}
+.stat b{display:block;font:700 calc(22px*var(--k,1))/1.2 "Noto Serif",Georgia,serif}
+.stat span{font-size:calc(13px*var(--k,1));color:var(--muted)}
+.gps{display:inline-flex;align-items:center;gap:8px;font-size:calc(15px*var(--k,1));font-weight:600;padding:4px 12px;border-radius:16px;border:1.5px solid var(--c,var(--line));color:var(--c,var(--muted))}
+.gps i{width:10px;height:10px;border-radius:50%;background:var(--c,var(--muted))}
+canvas{display:block;width:100%;height:280px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.obs{display:flex;gap:10px;align-items:center;border-left:6px solid var(--c);background:var(--card);border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.obs div{flex:1;min-width:0}.obs b{display:block}.obs small{color:var(--muted)}
+.obs img{width:52px;height:52px;object-fit:cover;border-radius:6px}
+.note{font-size:calc(14px*var(--k,1));color:var(--muted)}
+.warn{border-left:6px solid var(--warn)}
+.item{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;cursor:pointer;min-height:56px}
+.item small{display:block;color:var(--muted)}
+.badge{display:inline-block;padding:1px 10px;border-radius:12px;border:1.5px solid var(--canopy);color:var(--canopy);font-size:calc(13px*var(--k,1));font-weight:600}
+label{display:block;font-weight:600;font-size:calc(15px*var(--k,1));margin:12px 0 4px}
+input,select,textarea{width:100%;min-height:48px;padding:10px 12px;font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:8px}
+textarea{min-height:84px}
+.nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:6}
+.nav button{flex:1;min-height:60px;font:600 calc(14px*var(--k,1))/1.2 inherit;font-family:inherit;color:var(--muted);background:none;border:0;cursor:pointer}
+.nav button[aria-current="page"]{color:var(--canopy);box-shadow:inset 0 3px 0 var(--canopy)}
+dialog{border:0;border-radius:14px;padding:16px;width:min(94vw,520px);max-height:92vh;background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.thumb{width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-top:8px}
+.foot{font-size:10px;line-height:1.3;color:var(--muted);text-align:center;margin:6px 0 0}
+</style>
+</head>
+<body>
+<header><h1 id="ttl">Patrouille</h1><span id="gpsChip" class="gps"><i></i><span>GPS</span></span></header>
+<main id="view"></main>
+<nav class="nav" id="nav">
+  <button data-v="home">Patrouille</button>
+  <button data-v="post">Poste</button>
+  <button data-v="hist">Historique</button>
+  <button data-v="cfg">Réglages</button>
+</nav>
+
+<dialog id="dStart">
+  <h2 style="margin-top:0">Nouvelle patrouille</h2>
+  <label for="sAgent">Agent (chef de patrouille)</label><input id="sAgent" autocomplete="off">
+  <label for="sTeam">Équipe</label><input id="sTeam" autocomplete="off">
+  <label for="sMode">Mode de déplacement</label>
+  <select id="sMode"><option>À pied</option><option>Véhicule</option><option>Moto</option><option>Pirogue</option><option>Mixte</option></select>
+  <label for="sObj">Objectif</label><input id="sObj" placeholder="Ex. Surveillance du secteur nord">
+  <div id="sGps" style="font-size:13px;margin:10px 0;color:var(--muted)">GPS : recherche du signal…</div>
+  <div class="row"><button class="btn alt" onclick="$('#dStart').close()">Annuler</button><button class="btn" onclick="startPatrol()">Démarrer</button></div>
+</dialog>
+
+<dialog id="dObs">
+  <h2 style="margin-top:0">Nouvelle observation</h2>
+  <div class="note" id="oPos"></div>
+  <label for="oCat">Catégorie</label><select id="oCat" onchange="fillTypes()"></select>
+  <label for="oType">Type</label><select id="oType"></select>
+  <div id="oSpWrap"><label for="oSp">Espèce</label><select id="oSp"></select></div>
+  <label for="oN">Nombre</label><input id="oN" type="number" min="1" value="1" inputmode="numeric">
+  <label for="oNote">Notes</label><textarea id="oNote"></textarea>
+  <label for="oPhoto">Photo</label><input id="oPhoto" type="file" accept="image/*" capture="environment">
+  <img id="oThumb" class="thumb" alt="" hidden>
+  <div class="row"><button class="btn alt" onclick="$('#dObs').close()">Annuler</button><button class="btn" onclick="saveObs()">Enregistrer</button></div>
+</dialog>
+
+<dialog id="dPost">
+  <h2 style="margin-top:0">Nouveau poste</h2>
+  <label for="pName">Nom du poste</label><input id="pName" autocomplete="off" placeholder="Ex. Poste de contrôle de Lobé">
+  <div class="note" style="margin-top:8px">Ajoutez le poste quand vous êtes sur place : sa position GPS est enregistrée.</div>
+  <div class="row"><button class="btn alt" onclick="$('#dPost').close()">Annuler</button><button class="btn" onclick="savePost()">Enregistrer</button></div>
+</dialog>
+
+<dialog id="dCk">
+  <h2 style="margin-top:0">Nouveau contrôle</h2>
+  <div class="note" id="kPos"></div>
+  <h2>Personne</h2>
+  <label for="kName" style="margin-top:0">Nom et prénom</label><input id="kName" autocomplete="off">
+  <label for="kIdT">Pièce d'identité</label><select id="kIdT"></select>
+  <label for="kIdN">Numéro de la pièce</label><input id="kIdN" autocomplete="off" oninput="ckHist()">
+  <label for="kMot">Motif du déplacement</label><input id="kMot" autocomplete="off">
+  <h2>À pied ou en véhicule</h2>
+  <label for="kVT" style="margin-top:0">Type de contrôle</label><select id="kVT" onchange="ckToggle()"></select>
+  <div id="kVeh">
+    <label for="kPl">Plaque d'immatriculation</label><input id="kPl" autocomplete="off" autocapitalize="characters" oninput="ckHist()">
+    <label for="kBr">Marque</label><input id="kBr" autocomplete="off">
+    <label for="kCol">Couleur</label><input id="kCol" autocomplete="off">
+    <label for="kDr">Chauffeur (si différent de la personne)</label><input id="kDr" autocomplete="off">
+    <label for="kPax">Nombre de passagers</label><input id="kPax" type="number" min="0" value="0" inputmode="numeric">
+  </div>
+  <div class="note" id="kHist"></div>
+  <h2>Produit transporté</h2>
+  <label for="kCargo" style="margin-top:0">Nature du produit</label><textarea id="kCargo" placeholder="Ex. 3 sacs de charbon, planches de bois…"></textarea>
+  <label for="kFrom">Provenance</label><input id="kFrom" autocomplete="off">
+  <label for="kTo">Destination</label><input id="kTo" autocomplete="off">
+  <label for="kPhC">Photo du produit</label><input id="kPhC" type="file" accept="image/*" capture="environment">
+  <img id="kThC" class="thumb" alt="" hidden>
+  <h2>Résultat</h2>
+  <label for="kRes" style="margin-top:0">Résultat du contrôle</label><select id="kRes"></select>
+  <label for="kNote">Observations</label><textarea id="kNote"></textarea>
+  <label for="kPhR">Photo (saisie, PV…)</label><input id="kPhR" type="file" accept="image/*" capture="environment">
+  <img id="kThR" class="thumb" alt="" hidden>
+  <div class="row"><button class="btn alt" onclick="$('#dCk').close()">Annuler</button><button class="btn" id="kSave" onclick="saveCk()">Enregistrer</button></div>
+</dialog>
+
+<dialog id="dCkV"></dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- Affichage des erreurs ---------- */
+function showErr(msg){
+  let b = document.getElementById("errBar");
+  if(!b){
+    b = document.createElement("div"); b.id = "errBar"; b.setAttribute("role","alert");
+    b.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99;background:#A3262A;color:#fff;padding:10px 12px;border-radius:8px;font-size:14px";
+    b.onclick = () => b.remove(); document.body.appendChild(b);
+  }
+  b.textContent = "Erreur : " + msg + " (touchez pour fermer)";
+}
+addEventListener("error", e => showErr(e.message || "inconnue"));
+addEventListener("unhandledrejection", e => showErr((e.reason && e.reason.message) || String(e.reason)));
+
+const VERSION = "1.0";
+const BUILD = "19"; /* numéro de build interne, non affiché */
+const AUTHOR = "Takoumbo Kemadze Brice";
+const WA_NUM = "237698864211", WA_SHOW = "+237 698 864 211";
+function openWA(){
+  const u = "https://wa.me/" + WA_NUM + "?text=" + encodeURIComponent("Bonjour, à propos de l'application Patrouille forêt");
+  if(NATIVE) location.href = u; else window.open(u, "_blank");
+}
+/* ---------- Version native (Capacitor) ---------- */
+const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+function getPlugin(n){
+  try{
+    if(typeof Capacitor.registerPlugin === "function") return Capacitor.registerPlugin(n);
+    if(Capacitor.Plugins && Capacitor.Plugins[n]) return Capacitor.Plugins[n];
+  }catch(e){}
+  return null;
+}
+const BG = NATIVE ? getPlugin("BackgroundGeolocation") : null;
+const LN = NATIVE ? getPlugin("LocalNotifications") : null;
+
+/*PURE*/
+const CATS = {
+  faune:{label:"Faune", col:"--faune", types:["Animal vivant (vu)","Animal vivant (entendu)","Indice (empreintes, crottes, nids)","Animal mort ou carcasse"], sp:true},
+  braconnage:{label:"Braconnage", col:"--infractions", types:["Piège à câble","Arme ou munitions","Campement de braconniers","Viande de brousse ou fumoir","Ivoire, écailles ou trophée","Personne rencontrée","Coup de feu entendu"], sp:true},
+  exploitation:{label:"Exploitation et défrichement", col:"--amber", types:["Souche ou arbre abattu","Bois scié ou parc à bois","Défrichement ou champ","Feu","Piste ou route illégale"], sp:false},
+  autre:{label:"Autre", col:"--muted", types:["Point d'intérêt","Danger","Point d'eau","Autre"], sp:false}
+};
+const SPECIES = ["Non précisée","Éléphant de forêt","Éléphant de savane","Gorille de plaine","Chimpanzé","Mandrill","Drill","Pangolin géant","Pangolin à ventre blanc","Pangolin à longue queue","Perroquet gris","Buffle de forêt","Sitatunga","Bongo","Céphalophe bleu","Céphalophe à dos jaune","Potamochère","Hylochère","Léopard","Lion","Hippopotame","Lamantin","Éland de Derby","Athérure","Aulacode","Autre espèce"];
+
+const R = 6371000, rad = x => x*Math.PI/180;
+function dist(a,b){
+  const dLa = rad(b.lat-a.lat), dLo = rad(b.lon-a.lon);
+  const h = Math.sin(dLa/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLo/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function trackLen(t){ let s=0; for(let i=1;i<t.length;i++) s+=dist(t[i-1],t[i]); return s; }
+function fmtKm(m){ return m<1000 ? Math.round(m)+" m" : (m/1000).toFixed(2).replace(".",",")+" km"; }
+function fmtDur(ms){ const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60); return h+" h "+String(m).padStart(2,"0")+" min"; }
+function activeMs(p, now){
+  const end = p.end || now;
+  let pause = p.pausedMs||0;
+  if(p.status==="paused" && p.pauseStart) pause += now - p.pauseStart;
+  return end - p.start - pause;
+}
+const xe = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toGPX(p){
+  let o = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Patrouille forêt" xmlns="http://www.topografix.com/GPX/1/1">\n';
+  o += "<metadata><name>"+xe("Patrouille "+new Date(p.start).toISOString().slice(0,10))+"</name></metadata>\n";
+  p.obs.filter(x=>x.lat!=null).forEach(x=>{
+    o += '<wpt lat="'+x.lat+'" lon="'+x.lon+'"><time>'+new Date(x.t).toISOString()+"</time><name>"+xe(x.type)+"</name><desc>"+
+      xe([(CATS[x.cat]||{}).label, x.sp&&x.sp!=="Non précisée"?x.sp:"", x.n>1?("x"+x.n):"", x.note].filter(Boolean).join(" | "))+"</desc></wpt>\n";
+  });
+  o += "<trk><name>"+xe("Trace "+new Date(p.start).toISOString().slice(0,10))+"</name><trkseg>\n";
+  p.track.forEach(q=>{
+    o += '<trkpt lat="'+q.lat+'" lon="'+q.lon+'">'+(q.alt!=null?"<ele>"+Math.round(q.alt)+"</ele>":"")+"<time>"+new Date(q.t).toISOString()+"</time></trkpt>\n";
+  });
+  return o + "</trkseg></trk>\n</gpx>\n";
+}
+function toCSV(p){
+  const q = v => '"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const head = ["Date","Heure","Latitude","Longitude","Coordonnées (système choisi)","UTM zone","UTM Est (m)","UTM Nord (m)","Précision (m)","Catégorie","Type","Espèce","Nombre","Notes","Agent","Équipe"];
+  const rows = p.obs.map(x=>{
+    const d = new Date(x.t);
+    return [d.toLocaleDateString("fr-FR"), d.toLocaleTimeString("fr-FR"), x.lat, x.lon].concat(coordCols(x.lat,x.lon)).concat([x.acc!=null?Math.round(x.acc):"", (CATS[x.cat]||{}).label||x.cat, x.type, x.sp||"", x.n, x.note||"", p.agent||"", p.team||""]);
+  });
+  return "\ufeff" + [head].concat(rows).map(r=>r.map(q).join(";")).join("\r\n");
+}
+function toGeoJSON(p){
+  const f = [];
+  if(p.track.length>1) f.push({type:"Feature",properties:{kind:"patrouille",agent:p.agent,equipe:p.team,mode:p.mode,debut:new Date(p.start).toISOString(),fin:p.end?new Date(p.end).toISOString():null,distance_m:Math.round(trackLen(p.track))},geometry:{type:"LineString",coordinates:p.track.map(q=>[q.lon,q.lat])}});
+  p.obs.filter(x=>x.lat!=null).forEach(x=>f.push({type:"Feature",properties:{kind:"observation",heure:new Date(x.t).toISOString(),categorie:x.cat,type:x.type,espece:x.sp,nombre:x.n,notes:x.note,precision_m:x.acc!=null?Math.round(x.acc):null},geometry:{type:"Point",coordinates:[x.lon,x.lat]}}));
+  return JSON.stringify({type:"FeatureCollection",features:f},null,1);
+}
+
+/* ---------- Shapefile (SHP) dans une archive ZIP ---------- */
+const WGS84_PRJ = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+const U8 = str => new TextEncoder().encode(str);
+function concat(arrs){ let n = 0; arrs.forEach(a=>n+=a.length); const o = new Uint8Array(n); let p = 0; arrs.forEach(a=>{ o.set(a,p); p+=a.length; }); return o; }
+function crc32(b){
+  let t = crc32.t;
+  if(!t){ t = crc32.t = new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } }
+  let c = 0xFFFFFFFF; for(let i=0;i<b.length;i++) c = t[(c^b[i])&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function zipStore(files, dt){
+  const time = (dt.getHours()<<11)|(dt.getMinutes()<<5)|(dt.getSeconds()>>1);
+  const date = ((Math.max(dt.getFullYear(),1980)-1980)<<9)|((dt.getMonth()+1)<<5)|dt.getDate();
+  const parts = [], cd = []; let off = 0;
+  files.forEach(f=>{
+    const name = U8(f.name), crc = crc32(f.bytes), size = f.bytes.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,time,true); lh.setUint16(12,date,true); lh.setUint32(14,crc,true); lh.setUint32(18,size,true); lh.setUint32(22,size,true);
+    lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer), name, f.bytes);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true);
+    ch.setUint16(12,time,true); ch.setUint16(14,date,true); ch.setUint32(16,crc,true); ch.setUint32(20,size,true); ch.setUint32(24,size,true);
+    ch.setUint16(28,name.length,true); ch.setUint32(42,off,true);
+    cd.push(new Uint8Array(ch.buffer), name);
+    off += 30 + name.length + size;
+  });
+  let cdSize = 0; cd.forEach(x=>cdSize+=x.length);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true); end.setUint32(12,cdSize,true); end.setUint32(16,off,true);
+  return concat(parts.concat(cd,[new Uint8Array(end.buffer)]));
+}
+function fitBytes(v, n){
+  const b = U8(String(v==null?"":v)); if(b.length<=n) return b;
+  let e = n; while(e>0 && (b[e]&0xC0)===0x80) e--; return b.slice(0,e);
+}
+function dbfFile(fields, rows, d){
+  const recLen = 1 + fields.reduce((a,f)=>a+f.l,0), hdrLen = 32 + 32*fields.length + 1;
+  const out = new Uint8Array(hdrLen + recLen*rows.length + 1), v = new DataView(out.buffer);
+  out[0]=3; out[1]=d.getFullYear()-1900; out[2]=d.getMonth()+1; out[3]=d.getDate();
+  v.setUint32(4,rows.length,true); v.setUint16(8,hdrLen,true); v.setUint16(10,recLen,true);
+  fields.forEach((f,i)=>{ const o = 32+32*i; out.set(U8(f.n).slice(0,10),o); out[o+11]=f.t.charCodeAt(0); out[o+16]=f.l; });
+  out[32+32*fields.length] = 0x0D;
+  rows.forEach((r,ri)=>{
+    let o = hdrLen + recLen*ri; out[o++] = 0x20;
+    fields.forEach((f,fi)=>{
+      const val = r[fi]; let b;
+      if(f.t==="N"){ const t = (val==null||val==="") ? "" : String(Math.round(val)); b = U8(t.padStart(f.l," ").slice(-f.l)); }
+      else b = fitBytes(val, f.l);
+      out.fill(0x20,o,o+f.l); out.set(b,o); o += f.l;
+    });
+  });
+  out[out.length-1] = 0x1A;
+  return out;
+}
+function bboxOf(c){
+  let a=Infinity,b=Infinity,x=-Infinity,y=-Infinity;
+  c.forEach(p=>{ if(p[0]<a)a=p[0]; if(p[0]>x)x=p[0]; if(p[1]<b)b=p[1]; if(p[1]>y)y=p[1]; });
+  return [a,b,x,y];
+}
+function shpHeader(type, words, bb){
+  const h = new DataView(new ArrayBuffer(100));
+  h.setInt32(0,9994,false); h.setInt32(24,words,false); h.setInt32(28,1000,true); h.setInt32(32,type,true);
+  for(let i=0;i<4;i++) h.setFloat64(36+8*i,bb[i],true);
+  return new Uint8Array(h.buffer);
+}
+function shapePoints(pts){
+  const bb = bboxOf(pts), recs = [], idx = [];
+  pts.forEach((p,i)=>{
+    const r = new DataView(new ArrayBuffer(28));
+    r.setInt32(0,i+1,false); r.setInt32(4,10,false); r.setInt32(8,1,true); r.setFloat64(12,p[0],true); r.setFloat64(20,p[1],true);
+    recs.push(new Uint8Array(r.buffer));
+    const x = new DataView(new ArrayBuffer(8)); x.setInt32(0,(100+28*i)/2,false); x.setInt32(4,10,false); idx.push(new Uint8Array(x.buffer));
+  });
+  return {shp:concat([shpHeader(1,(100+28*pts.length)/2,bb)].concat(recs)), shx:concat([shpHeader(1,(100+8*pts.length)/2,bb)].concat(idx))};
+}
+function shapeLine(c){
+  const n = c.length, cl = 48 + 16*n, bb = bboxOf(c), r = new DataView(new ArrayBuffer(8+cl));
+  r.setInt32(0,1,false); r.setInt32(4,cl/2,false); r.setInt32(8,3,true);
+  for(let i=0;i<4;i++) r.setFloat64(12+8*i,bb[i],true);
+  r.setInt32(44,1,true); r.setInt32(48,n,true); r.setInt32(52,0,true);
+  c.forEach((p,i)=>{ r.setFloat64(56+16*i,p[0],true); r.setFloat64(64+16*i,p[1],true); });
+  const x = new DataView(new ArrayBuffer(8)); x.setInt32(0,50,false); x.setInt32(4,cl/2,false);
+  return {shp:concat([shpHeader(3,(100+8+cl)/2,bb), new Uint8Array(r.buffer)]), shx:concat([shpHeader(3,(100+8)/2,bb), new Uint8Array(x.buffer)])};
+}
+function toShapefileZip(p){
+  const files = [], when = new Date(p.start), pad = n => String(n).padStart(2,"0");
+  const add = (base, sh, fields, rows) => {
+    files.push({name:base+".shp",bytes:sh.shp},{name:base+".shx",bytes:sh.shx},{name:base+".dbf",bytes:dbfFile(fields,rows,when)},
+      {name:base+".prj",bytes:U8(WGS84_PRJ)},{name:base+".cpg",bytes:U8("UTF-8")});
+  };
+  const pts = p.obs.filter(o=>o.lat!=null);
+  if(pts.length){
+    add("observations_points", shapePoints(pts.map(o=>[o.lon,o.lat])),
+      [{n:"DATE",t:"C",l:10},{n:"HEURE",t:"C",l:8},{n:"CATEGORIE",t:"C",l:30},{n:"TYPE",t:"C",l:40},{n:"ESPECE",t:"C",l:30},{n:"NOMBRE",t:"N",l:5},{n:"PRECISION",t:"N",l:6},{n:"NOTES",t:"C",l:100},{n:"AGENT",t:"C",l:40}],
+      pts.map(o=>{ const d = new Date(o.t);
+        return [d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()), pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds()),
+          (CATS[o.cat]||{}).label||o.cat, o.type, o.sp||"", o.n, o.acc, o.note||"", p.agent||""]; }));
+  }
+  if(p.track.length>1){
+    const iso = t => t ? new Date(t).toISOString().slice(0,19) : "";
+    add("trace_ligne", shapeLine(p.track.map(q=>[q.lon,q.lat])),
+      [{n:"DEBUT",t:"C",l:19},{n:"FIN",t:"C",l:19},{n:"AGENT",t:"C",l:40},{n:"EQUIPE",t:"C",l:40},{n:"MODE",t:"C",l:20},{n:"DIST_M",t:"N",l:10},{n:"NB_PTS",t:"N",l:7}],
+      [[iso(p.start), iso(p.end), p.agent||"", p.team||"", p.mode||"", trackLen(p.track), p.track.length]]);
+  }
+  return files.length ? zipStore(files, when) : null;
+}
+/*ENDPURE*/
+
+/* ---------- Stockage (IndexedDB, avec secours localStorage) ---------- */
+let useLS = false;
+const LSK = "patrouille:data";
+const lsAll = () => { try{ return JSON.parse(localStorage.getItem(LSK)||"[]"); }catch(e){ return []; } };
+const lsSet = a => { try{ localStorage.setItem(LSK, JSON.stringify(a)); }catch(e){ showErr("Stockage plein ou indisponible"); } };
+const DB = new Promise((res,rej)=>{
+  try{
+    const r = indexedDB.open("patrouille",2);
+    r.onupgradeneeded = () => { const d = r.result; if(!d.objectStoreNames.contains("patrols")) d.createObjectStore("patrols",{keyPath:"id"}); if(!d.objectStoreNames.contains("checks")) d.createObjectStore("checks",{keyPath:"id"}); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error("base bloquée"));
+  }catch(e){ rej(e); }
+  setTimeout(()=>rej(new Error("délai dépassé")), 4000);
+});
+DB.catch(()=>{});
+function tx(mode, fn){
+  const work = DB.then(db => new Promise((res,rej)=>{
+    const t = db.transaction("patrols",mode), rq = fn(t.objectStore("patrols"));
+    t.oncomplete = () => res(rq && rq.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  }));
+  const limit = new Promise((_,rej)=>setTimeout(()=>rej(new Error("délai dépassé")), 5000));
+  return Promise.race([work, limit]);
+}
+async function putP(p){
+  if(!useLS){ try{ return await tx("readwrite", s=>s.put(p)); }catch(e){ useLS = true; } }
+  const a = lsAll().filter(x=>x.id!==p.id); a.push(p); lsSet(a);
+}
+async function allP(){
+  if(!useLS){ try{ return await tx("readonly", s=>s.getAll()); }catch(e){ useLS = true; } }
+  return lsAll();
+}
+async function delP(id){
+  if(!useLS){ try{ return await tx("readwrite", s=>s.delete(id)); }catch(e){ useLS = true; } }
+  lsSet(lsAll().filter(x=>x.id!==id));
+}
+
+let cfg = {agent:"",team:"",area:"",posts:[],post:""};
+try{ Object.assign(cfg, JSON.parse(localStorage.getItem("patrouille:cfg")||"{}")); }catch(e){}
+if(!Array.isArray(cfg.posts)) cfg.posts = [];
+const saveCfg = () => { try{ localStorage.setItem("patrouille:cfg", JSON.stringify(cfg)); }catch(e){} };
+
+/* ---------- Systèmes de coordonnées ---------- */
+const COORD_LABELS = {dd:"Degrés décimaux (DD)", dm:"Degrés, minutes décimales (DDM)", dms:"Degrés, minutes, secondes (DMS)", utm:"UTM (WGS84)"};
+function toUTM(lat, lon, zoneForce){
+  const a = 6378137, f = 1/298.257223563, k0 = 0.9996, e2 = f*(2-f), ep2 = e2/(1-e2);
+  const zone = zoneForce || Math.floor((lon+180)/6)+1;
+  const lam = rad(lon - ((zone-1)*6-180+3)), phi = rad(lat);
+  const s = Math.sin(phi), c = Math.cos(phi), t = Math.tan(phi);
+  const N = a/Math.sqrt(1-e2*s*s), T = t*t, C = ep2*c*c, A = c*lam;
+  const e4 = e2*e2, e6 = e4*e2;
+  const M = a*((1-e2/4-3*e4/64-5*e6/256)*phi - (3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*phi) + (15*e4/256+45*e6/1024)*Math.sin(4*phi) - (35*e6/3072)*Math.sin(6*phi));
+  const x = k0*N*(A+(1-T+C)*Math.pow(A,3)/6+(5-18*T+T*T+72*C-58*ep2)*Math.pow(A,5)/120) + 500000;
+  let y = k0*(M+N*t*(A*A/2+(5-T+9*C+4*C*C)*Math.pow(A,4)/24+(61-58*T+T*T+600*C-330*ep2)*Math.pow(A,6)/720));
+  if(lat<0) y += 10000000;
+  const band = lat>=-80 && lat<=84 ? "CDEFGHJKLMNPQRSTUVWX".charAt(Math.min(19,Math.floor((lat+80)/8))) : "";
+  return {zone:zone, band:band, hemi:lat>=0?"N":"S", e:Math.round(x), n:Math.round(y)};
+}
+function utmZoneCfg(){ const z = parseInt(cfg.utmZone,10); return z>=1 && z<=60 ? z : 0; }
+function fmtDeg(v, pos, neg, mode, dig){
+  const h = v>=0 ? pos : neg; v = Math.abs(v);
+  let d = Math.floor(v), pad = n => String(n).padStart(dig,"0");
+  if(mode==="dm"){
+    let m = Math.round((v-d)*60*1000)/1000; if(m>=60){ m = 0; d++; }
+    return h+" "+pad(d)+"° "+m.toFixed(3).padStart(6,"0")+"′";
+  }
+  let m = Math.floor((v-d)*60), s = Math.round(((v-d)*60-m)*60*10)/10;
+  if(s>=60){ s = 0; m++; } if(m>=60){ m = 0; d++; }
+  return h+" "+pad(d)+"° "+String(m).padStart(2,"0")+"′ "+s.toFixed(1).padStart(4,"0")+"″";
+}
+function fmtCoord(lat, lon){
+  if(lat==null || lon==null) return "";
+  const sys = cfg.coord || "dd";
+  if(sys==="utm"){ const u = toUTM(lat, lon, utmZoneCfg()); return "UTM "+u.zone+u.band+" · E "+u.e+" · N "+u.n; }
+  if(sys==="dm" || sys==="dms") return fmtDeg(lat,"N","S",sys,2)+"  "+fmtDeg(lon,"E","O",sys,3);
+  return lat.toFixed(5)+", "+lon.toFixed(5);
+}
+function coordPreview(){
+  const p = (typeof fix!=="undefined" && fix) ? fix : null, pt = p || {lat:3.848, lon:11.502};
+  return (p ? "Position actuelle : " : "Exemple : ") + fmtCoord(pt.lat, pt.lon);
+}
+function coordCols(lat, lon){
+  if(lat==null || lon==null) return ["","","",""];
+  const u = toUTM(lat, lon, utmZoneCfg());
+  return [fmtCoord(lat, lon), u.zone+u.band, u.e, u.n];
+}
+
+
+/* ---------- État ---------- */
+let patrols = [], cur = null, view = "home", detailId = null;
+let fix = null, watchId = null, wake = null, saveTimer = null, photoData = null, lastMap = 0;
+
+function dirty(){ clearTimeout(saveTimer); saveTimer = setTimeout(()=>{ if(cur) putP(cur); }, 3000); }
+function saveNow(){ clearTimeout(saveTimer); if(cur) putP(cur); }
+
+/* ---------- GPS ---------- */
+async function wakeOn(){ if(NATIVE) return; try{ if("wakeLock" in navigator && !wake){ wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release",()=>{wake=null;}); } }catch(e){} }
+function wakeOff(){ try{ wake && wake.release(); }catch(e){} wake=null; }
+async function startWatch(){
+  if(watchId!=null) return;
+  if(NATIVE){
+    if(!BG){ showErr("Plugin GPS introuvable dans l'application"); setChip("GPS indisponible","--infractions"); return; }
+    watchId = "pending";
+    try{ if(LN) await LN.requestPermissions(); }catch(e){}
+    try{
+      watchId = await BG.addWatcher(
+        {backgroundTitle:"Patrouille en cours", backgroundMessage:"Enregistrement de la trace GPS", requestPermissions:true, stale:false, distanceFilter:0},
+        (loc, err) => {
+          if(err){
+            if(err.code==="NOT_AUTHORIZED"){ if(confirm("La localisation est nécessaire pour la patrouille. Ouvrir les réglages ?")) BG.openSettings(); }
+            else onErr({code:2});
+            return;
+          }
+          onFix(loc.latitude, loc.longitude, loc.accuracy, loc.altitude, loc.time || Date.now());
+        });
+      warmOff();
+    }catch(e){ watchId = null; setChip("GPS indisponible","--infractions"); }
+    return;
+  }
+  if(!navigator.geolocation){ setChip("Pas de GPS","--infractions"); return; }
+  watchId = navigator.geolocation.watchPosition(onPos, onErr, {enableHighAccuracy:true, maximumAge:0, timeout:30000});
+  wakeOn();
+}
+/* Préchauffage : le GPS démarre dès l'ouverture de l'app, pour avoir déjà le signal au moment de démarrer */
+let warm = null, searchT0 = 0, warmTries = 0;
+function warmOn(){
+  if(warm || watchId!=null || !navigator.geolocation) return;
+  if(!searchT0) searchT0 = Date.now();
+  const onWarmErr = e => {
+    onErr(e);
+    if(e.code===1 && warmTries++ < 3) setTimeout(()=>{ if(warm){ warmOff(); warmOn(); } }, 8000); /* permission accordée après le démarrage */
+  };
+  warm = {id:navigator.geolocation.watchPosition(onPos, onWarmErr, {enableHighAccuracy:true, maximumAge:0, timeout:30000})};
+  updateLive();
+}
+function warmOff(){
+  if(!warm) return;
+  try{ navigator.geolocation.clearWatch(warm.id); }catch(e){}
+  warm = null;
+}
+function stopWatch(){
+  if(watchId!=null){
+    if(NATIVE){ if(BG && watchId!=="pending") BG.removeWatcher({id:watchId}); }
+    else navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  wakeOff();
+  if(!(cur && cur.status==="active") && !document.hidden) warmOn();
+}
+function onPos(pos){ const c = pos.coords; onFix(c.latitude, c.longitude, c.accuracy, c.altitude, pos.timestamp); }
+function onFix(lat, lon, accuracy, altitude, ts){
+  const c = {accuracy};
+  fix = {lat:lat, lon:lon, acc:accuracy, alt:altitude, t:ts};
+  const Lp = cur ? cur.track[cur.track.length-1] : null;
+  const accMax = (Lp && fix.t-Lp.t>45000) ? 40 : 20; /* 20 m max ; 40 m si aucun point depuis 45 s (forêt dense) */
+  if(cur && cur.status==="active" && c.accuracy<=accMax){
+    const L = cur.track[cur.track.length-1];
+    const jump = L && fix.t>L.t && dist(L,fix)/((fix.t-L.t)/1000) > 60; /* saut impossible (> 216 km/h) */
+    if(!jump && (!L || dist(L,fix)>=8 || fix.t-L.t>=30000)){
+      cur.track.push({lat:fix.lat, lon:fix.lon, alt:fix.alt, acc:fix.acc, t:fix.t});
+      dirty();
+    }
+  }
+  updateLive();
+}
+function onErr(e){
+  if(e.code===1) setChip("Localisation refusée","--infractions");
+  else setChip("Recherche du signal…","--warn");
+}
+function setChip(txt, col){
+  const c = $("#gpsChip"); c.style.setProperty("--c", "var("+col+")"); c.lastElementChild.textContent = txt;
+}
+function updateLive(){
+  const sg = $("#sGps");
+  if(!fix){
+    const sec = searchT0 ? " " + Math.round((Date.now()-searchT0)/1000) + " s" : "";
+    setChip("Recherche du signal…" + sec, "--warn");
+    if(sg) sg.textContent = "GPS : recherche du signal…" + sec + " restez à découvert";
+    return;
+  }
+  const age = Date.now()-fix.t, a = Math.round(fix.acc);
+  if(age>30000) setChip("Signal perdu","--warn");
+  else setChip("± "+a+" m"+((cur && cur.status==="active") ? " · "+cur.track.length+" pts" : ""), a<=15?"--ok":a<=50?"--warn":"--infractions");
+  if(sg) sg.textContent = age>30000 ? "GPS : signal perdu" : a<=20 ? "GPS prêt : ± "+a+" m" : "GPS : ± "+a+" m, attendez un meilleur signal";
+  if(view==="home" && cur){
+    refreshStats();
+    if(Date.now()-lastMap>4000){ lastMap=Date.now(); const cv=$("#map"); if(cv) drawMap(cv,cur,fix); }
+  }
+}
+function getPos(){
+  return new Promise(res=>{
+    const maxAge = (NATIVE && watchId!=null) ? 120000 : 20000;
+    if(fix && Date.now()-fix.t<maxAge) return res(fix);
+    if(NATIVE && watchId!=null){
+      const t0 = Date.now();
+      const iv = setInterval(()=>{
+        if(fix && Date.now()-fix.t<maxAge){ clearInterval(iv); res(fix); }
+        else if(Date.now()-t0>8000){ clearInterval(iv); res(fix||null); }
+      }, 250);
+      return;
+    }
+    if(!navigator.geolocation) return res(null);
+    navigator.geolocation.getCurrentPosition(
+      p=>res({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,alt:p.coords.altitude,t:p.timestamp}),
+      ()=>res(fix), {enableHighAccuracy:true, timeout:10000, maximumAge:5000});
+  });
+}
+
+/* ---------- Carte hors ligne (tracé + fond de carte facultatif) ---------- */
+
+
+/* ---------- Zoom / déplacement de la carte ---------- */
+const mv = {s:1, dx:0, dy:0, cv:null, args:null, raf:0};
+function mvRedraw(){
+  if(mv.raf) return;
+  mv.raf = requestAnimationFrame(()=>{ mv.raf = 0; const a = mv.args; if(a && a.cv.isConnected) drawMap(a.cv, a.p, a.live); });
+}
+function mvZoomAt(f, mx, my, cv){
+  const w = cv.clientWidth, h = cv.clientHeight, s0 = mv.s, s1 = Math.max(0.3, Math.min(64, s0*f)), r = s1/s0;
+  mv.dx = (mx-w/2) - (mx-w/2-mv.dx)*r; mv.dy = (my-h/2) - (my-h/2-mv.dy)*r; mv.s = s1; mvRedraw();
+}
+function mvInit(cv,p,live){
+  mv.args = {cv:cv, p:p, live:live};
+  if(mv.cv !== cv){ mv.cv = cv; mv.s = 1; mv.dx = 0; mv.dy = 0; }
+  if(cv._g) return; cv._g = 1; cv.style.touchAction = "none";
+  const ptr = new Map(); let d0 = 0, moved = false, lastTap = 0, tapX = 0, tapY = 0;
+  const pos = e => { const r = cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; };
+  cv.addEventListener("pointerdown", e=>{
+    try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+    ptr.set(e.pointerId, pos(e)); moved = false;
+    if(ptr.size === 2){ const [a,b] = [...ptr.values()]; d0 = Math.hypot(a.x-b.x, a.y-b.y) || 1; }
+  });
+  cv.addEventListener("pointermove", e=>{
+    if(!ptr.has(e.pointerId)) return;
+    const n = pos(e), o = ptr.get(e.pointerId);
+    if(ptr.size === 1){
+      const ddx = n.x-o.x, ddy = n.y-o.y;
+      if(Math.abs(ddx)+Math.abs(ddy) > 0){ mv.dx += ddx; mv.dy += ddy; moved = moved || Math.abs(ddx)+Math.abs(ddy) > 3; mvRedraw(); }
+      ptr.set(e.pointerId, n);
+    } else if(ptr.size === 2){
+      ptr.set(e.pointerId, n);
+      const [a,b] = [...ptr.values()], d1 = Math.hypot(a.x-b.x, a.y-b.y) || 1;
+      mvZoomAt(d1/d0, (a.x+b.x)/2, (a.y+b.y)/2, cv); d0 = d1; moved = true;
+    }
+  });
+  const up = e=>{
+    if(!ptr.has(e.pointerId)) return;
+    const n = pos(e), wasOne = ptr.size === 1; ptr.delete(e.pointerId);
+    if(ptr.size === 1){ d0 = 0; }
+    if(wasOne && !moved){
+      if(n.x < 52 && n.y < 140){
+        if(n.y < 50) mvZoomAt(2, cv.clientWidth/2, cv.clientHeight/2, cv);
+        else if(n.y < 94) mvZoomAt(0.5, cv.clientWidth/2, cv.clientHeight/2, cv);
+        else { mv.s = 1; mv.dx = 0; mv.dy = 0; mvRedraw(); }
+        return;
+      }
+      const t = Date.now();
+      if(t-lastTap < 350 && Math.hypot(n.x-tapX, n.y-tapY) < 30){ mvZoomAt(2, n.x, n.y, cv); lastTap = 0; }
+      else { lastTap = t; tapX = n.x; tapY = n.y; }
+    }
+  };
+  cv.addEventListener("pointerup", up);
+  cv.addEventListener("pointercancel", e=>{ ptr.delete(e.pointerId); });
+  cv.addEventListener("wheel", e=>{ e.preventDefault(); const q = pos(e); mvZoomAt(e.deltaY<0?1.4:1/1.4, q.x, q.y, cv); }, {passive:false});
+}
+function drawMapBtns(g){
+  const B = [["+",8],["−",52],["⌖",96]];
+  g.font = "bold 22px system-ui"; g.textAlign = "center";
+  B.forEach(([t,y])=>{
+    g.fillStyle = "rgba(255,255,255,.92)"; g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 1;
+    g.beginPath(); g.rect(8,y,38,38); g.fill(); g.stroke();
+    g.fillStyle = "#17221D"; g.fillText(t, 27, y+27);
+  });
+}
+
+/* ---------- Fonds de carte (en ligne + copie hors ligne) ---------- */
+const BASES = {
+  sat:{label:"Satellite (Esri)", url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr:"© Esri, Maxar, Earthstar Geographics", dl:true, max:17},
+  osm:{label:"Plan (OpenStreetMap)", url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png", attr:"© contributeurs OpenStreetMap", dl:false, max:19}
+};
+const TILE_CACHE = "tuiles-v1", tImgs = new Map(), tState = new Map();
+let tRedrawT = null, tRedrawArgs = null;
+function tUrl(b,z,x,y){ return BASES[b].url.replace("{z}",z).replace("{x}",x).replace("{y}",y); }
+function lon2x(lon,z){ return (lon+180)/360*Math.pow(2,z); }
+function lat2y(lat,z){ const r = rad(lat); return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z); }
+function x2lon(x,z){ return x/Math.pow(2,z)*360-180; }
+function y2lat(y,z){ const n = Math.PI-2*Math.PI*y/Math.pow(2,z); return 180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))); }
+function tRedraw(){
+  clearTimeout(tRedrawT);
+  tRedrawT = setTimeout(()=>{ const a = tRedrawArgs; if(a && a.cv.isConnected) drawMap(a.cv, a.p, a.live); }, 200);
+}
+function tBlobImg(blob){
+  return new Promise((res,rej)=>{
+    const im = new Image(), u = URL.createObjectURL(blob);
+    im.onload = ()=>{ URL.revokeObjectURL(u); res(im); }; im.onerror = ()=>{ URL.revokeObjectURL(u); rej(); }; im.src = u;
+  });
+}
+async function tLoad(b,z,x,y){
+  const url = tUrl(b,z,x,y), key = b+"/"+z+"/"+x+"/"+y;
+  if(tImgs.has(key)) return;
+  const st = tState.get(key); if(st && Date.now()-st < 20000) return;
+  tState.set(key, Date.now());
+  const done = im => {
+    if(tImgs.size > 300) tImgs.delete(tImgs.keys().next().value);
+    tImgs.set(key, im); tState.delete(key); tRedraw();
+  };
+  try{
+    if(window.caches){
+      const c = await caches.open(TILE_CACHE);
+      let r = await c.match(url);
+      if(!r && navigator.onLine !== false){
+        const r2 = await fetch(url, {mode:"cors"});
+        if(r2.ok){ await c.put(url, r2.clone()); r = r2; }
+      }
+      if(r){ done(await tBlobImg(await r.blob())); return; }
+    }
+  }catch(e){}
+  if(navigator.onLine !== false){
+    const im = new Image(); im.onload = ()=>done(im); im.src = url;
+  }
+}
+function drawBase(g,w,h,G,cv,p,live){
+  const b = cfg.base || "osm"; if(!BASES[b]) return null;
+  const X = lon => G.ox + (lon-G.lo0)*G.k*G.sc, Y = lat => h - G.oy - (lat-G.la0)*G.sc;
+  const lonL = G.lo0 + (0-G.ox)/(G.k*G.sc), lonR = G.lo0 + (w-G.ox)/(G.k*G.sc);
+  const latT = G.la0 + (h-G.oy)/G.sc, latB = G.la0 + (0-G.oy)/G.sc;
+  const mpp = 111320/G.sc, latC = (latT+latB)/2;
+  let z = Math.ceil(Math.log2(156543.03*Math.cos(rad(latC))/mpp));
+  z = Math.max(3, Math.min(BASES[b].max, z));
+  let x0, x1, y0, y1;
+  for(;;){
+    x0 = Math.floor(lon2x(lonL,z)); x1 = Math.floor(lon2x(lonR,z));
+    y0 = Math.floor(lat2y(latT,z)); y1 = Math.floor(lat2y(latB,z));
+    if((x1-x0+1)*(y1-y0+1) <= 40 || z <= 3) break;
+    z--;
+  }
+  tRedrawArgs = {cv:cv, p:p, live:live};
+  const n = Math.pow(2,z);
+  for(let tx=x0; tx<=x1; tx++) for(let ty=y0; ty<=y1; ty++){
+    if(ty<0 || ty>=n) continue;
+    const txw = ((tx%n)+n)%n, im = tImgs.get(b+"/"+z+"/"+txw+"/"+ty);
+    if(im){
+      const xa = X(x2lon(tx,z)), xb = X(x2lon(tx+1,z)), ya = Y(y2lat(ty,z)), yb = Y(y2lat(ty+1,z));
+      g.drawImage(im, xa, ya, xb-xa+0.6, yb-ya+0.6);
+    } else tLoad(b, z, txw, ty);
+  }
+  return b;
+}
+async function tCountInfo(){
+  const el = $("#dlInfo"); if(!el) return;
+  try{
+    if(!window.caches){ el.textContent = "Cartes hors ligne indisponibles sur ce téléphone."; return; }
+    const c = await caches.open(TILE_CACHE), n = (await c.keys()).length;
+    el.textContent = n ? n + " cartes enregistrées sur le téléphone." : "Aucune carte enregistrée pour le hors ligne.";
+  }catch(e){}
+}
+async function dlZone(){
+  const info = $("#dlInfo"), b = (cfg.base && cfg.base!=="none") ? cfg.base : "sat";
+  if(!BASES[b].dl){ info.textContent = "Le téléchargement hors ligne n'est pas autorisé pour ce fond : choisissez Satellite."; return; }
+  if(!window.caches){ info.textContent = "Cartes hors ligne indisponibles sur ce téléphone."; return; }
+  if(navigator.onLine === false){ info.textContent = "Pas d'internet : connectez-vous pour télécharger."; return; }
+  info.textContent = "Recherche de votre position…";
+  let c0 = (fix && Date.now()-fix.t < 600000) ? fix : null;
+  if(!c0){ try{ c0 = await getPos(); }catch(e){} }
+  if(!c0){
+    const lp = patrols.find(q=>q.track && q.track.length);
+    if(lp) c0 = lp.track[lp.track.length-1];
+  }
+  if(!c0){ info.textContent = "Position introuvable : touchez « Démarrer une patrouille » pour activer le GPS, puis revenez ici."; return; }
+  const r = parseFloat($("#cRad").value) || 3, dLa = r/111.32, dLo = r/(111.32*Math.cos(rad(c0.lat)));
+  const list = [];
+  for(let z=13; z<=BASES[b].max; z++){
+    const xa = Math.floor(lon2x(c0.lon-dLo,z)), xb = Math.floor(lon2x(c0.lon+dLo,z));
+    const ya = Math.floor(lat2y(c0.lat+dLa,z)), yb = Math.floor(lat2y(c0.lat-dLa,z));
+    for(let x=xa; x<=xb; x++) for(let y=ya; y<=yb; y++) list.push([z,x,y]);
+  }
+  if(list.length > 3000){ info.textContent = "Zone trop grande (" + list.length + " cartes). Choisissez un rayon plus petit."; return; }
+  const mo = Math.round(list.length*0.03);
+  if(!confirm("Télécharger " + list.length + " cartes (environ " + mo + " Mo) autour de votre position ?")){ info.textContent = ""; return; }
+  const c = await caches.open(TILE_CACHE);
+  let i = 0, ok = 0, ko = 0;
+  async function worker(){
+    while(i < list.length){
+      const [z,x,y] = list[i++], u = tUrl(b,z,x,y);
+      try{
+        if(await c.match(u)){ ok++; }
+        else { const rr = await fetch(u, {mode:"cors"}); if(rr.ok){ await c.put(u, rr); ok++; } else ko++; }
+      }catch(e){ ko++; }
+      if((ok+ko)%10===0 || ok+ko===list.length) info.textContent = "Téléchargement : " + (ok+ko) + " / " + list.length;
+    }
+  }
+  await Promise.all([worker(),worker(),worker(),worker()]);
+  info.textContent = ko ? ("Terminé : " + ok + " cartes enregistrées, " + ko + " échecs. Relancez pour compléter.") : ("Terminé : " + ok + " cartes enregistrées pour le hors ligne.");
+}
+async function clearTiles(){
+  if(!confirm("Effacer les cartes téléchargées ?")) return;
+  try{ await caches.delete(TILE_CACHE); }catch(e){}
+  tImgs.clear(); tState.clear(); tCountInfo();
+}
+
+
+const LIGHT = {"--card":"#FFFFFF","--muted":"#55625B","--gps":"#1F5F8B","--ok":"#2F6B3A","--ink":"#17221D","--faune":"#8A4B1F","--infractions":"#A3262A","--amber":"#8A6A00"};
+function drawMap(cv, p, live, W, H){
+  const dpr = W ? 1 : (devicePixelRatio||1), w = W || cv.clientWidth, h = H || cv.clientHeight;
+  cv.width = w*dpr; cv.height = h*dpr;
+  const g = cv.getContext("2d"); g.scale(dpr,dpr);
+  const cs = getComputedStyle(document.documentElement), V = W ? (n => LIGHT[n]||"#000") : (n => cs.getPropertyValue(n).trim());
+  g.fillStyle = V("--card"); g.fillRect(0,0,w,h);
+  const pts = p.track.map(q=>[q.lat,q.lon]).concat(p.obs.filter(o=>o.lat!=null).map(o=>[o.lat,o.lon]));
+  if(live) pts.push([live.lat,live.lon]);
+  g.font = "14px system-ui"; g.textAlign = "center";
+  if(!pts.length){ g.fillStyle = V("--muted"); g.fillText("Aucun point pour l'instant", w/2, h/2); return; }
+  const la = pts.map(q=>q[0]), lo = pts.map(q=>q[1]);
+  const la0 = Math.min(...la), la1 = Math.max(...la), lo0 = Math.min(...lo), lo1 = Math.max(...lo);
+  const k = Math.cos(rad((la0+la1)/2));
+  const sx = Math.max((lo1-lo0)*k, 0.0006), sy = Math.max(la1-la0, 0.0006), pad = 28;
+  let sc = Math.min((w-2*pad)/sx, (h-2*pad)/sy);
+  let ox = pad + ((w-2*pad) - sx*sc)/2, oy = pad + ((h-2*pad) - sy*sc)/2;
+  if(!W){ mvInit(cv,p,live); const zs = mv.s; ox = (ox-w/2)*zs + w/2 + mv.dx; oy = h/2 - (h/2-oy)*zs - mv.dy; sc = sc*zs; }
+  const X = lon => ox + (lon-lo0)*k*sc, Y = lat => h - oy - (lat-la0)*sc;
+  const base = (!W && (cfg.base||"osm")!=="none") ? drawBase(g,w,h,{la0:la0,lo0:lo0,k:k,sc:sc,ox:ox,oy:oy},cv,p,live) : null;
+  const tpath = () => { g.beginPath(); p.track.forEach((q,i)=>{ i ? g.lineTo(X(q.lon),Y(q.lat)) : g.moveTo(X(q.lon),Y(q.lat)); }); };
+  g.lineJoin = "round";
+  if(base){ g.strokeStyle = "rgba(255,255,255,.9)"; g.lineWidth = 6; tpath(); g.stroke(); }
+  g.strokeStyle = V("--gps"); g.lineWidth = 3; tpath(); g.stroke();
+  if(p.track.length){
+    const s = p.track[0]; g.fillStyle = V("--ok"); g.beginPath(); g.arc(X(s.lon),Y(s.lat),6,0,7); g.fill();
+  }
+  p.obs.filter(o=>o.lat!=null).forEach(o=>{
+    g.fillStyle = V((CATS[o.cat]||{}).col||"--muted"); g.strokeStyle = V("--card"); g.lineWidth = 2;
+    g.beginPath(); g.arc(X(o.lon),Y(o.lat),7,0,7); g.fill(); g.stroke();
+  });
+  if(live){
+    g.strokeStyle = V("--ink"); g.lineWidth = 2.5; g.fillStyle = V("--card");
+    g.beginPath(); g.arc(X(live.lon),Y(live.lat),8,0,7); g.fill(); g.stroke();
+  }
+  const mpp = 111320/sc, cands = [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000];
+  const m = cands.find(c=>c/mpp>=50) || cands[cands.length-1], len = m/mpp;
+  if(base){
+    g.fillStyle = "rgba(255,255,255,.8)"; g.fillRect(6, h-46, Math.max(len,44)+16, 42); g.fillRect(w-54, 4, 48, 22);
+  }
+  g.strokeStyle = V("--ink"); g.fillStyle = V("--ink"); g.lineWidth = 2; g.beginPath();
+  g.moveTo(12,h-14); g.lineTo(12+len,h-14); g.moveTo(12,h-19); g.lineTo(12,h-9); g.moveTo(12+len,h-19); g.lineTo(12+len,h-9); g.stroke();
+  g.textAlign = "left"; g.fillText(m>=1000?(m/1000)+" km":m+" m", 12, h-24);
+  g.textAlign = "right"; g.fillText("N ↑", w-12, 20);
+  if(base){
+    g.font = "10px system-ui"; const at = BASES[base].attr, tw = g.measureText(at).width;
+    g.fillStyle = "rgba(255,255,255,.8)"; g.fillRect(w-tw-10, h-17, tw+8, 14);
+    g.fillStyle = "#333"; g.textAlign = "right"; g.fillText(at, w-6, h-6);
+  }
+  if(!W) drawMapBtns(g);
+}
+
+/* ---------- Actions ---------- */
+function openStart(){
+  $("#sAgent").value = cfg.agent; $("#sTeam").value = cfg.team; $("#sObj").value = "";
+  $("#dStart").showModal();
+  startWatch(); updateLive();
+  if(navigator.storage && navigator.storage.persist) navigator.storage.persist();
+}
+async function startPatrol(){
+  if(!(fix && Date.now()-fix.t<30000 && fix.acc<=20)){
+    const m = fix ? "Signal GPS faible (± "+Math.round(fix.acc)+" m)." : "Pas encore de signal GPS.";
+    if(!confirm(m+" Il vaut mieux attendre un signal sous 20 m, à découvert. Démarrer quand même ?")) return;
+  }
+  if(NATIVE && !cfg.guideGps){
+    cfg.guideGps = true; saveCfg();
+    if(confirm("Pour un GPS fiable : dans les réglages Android de l'application, mettez Localisation sur « Toujours autoriser » avec « Position précise », et Batterie sur « Sans restriction ». Ouvrir les réglages maintenant ?")){ try{ BG.openSettings(); }catch(e){} return; }
+  }
+  cfg.agent = $("#sAgent").value.trim(); cfg.team = $("#sTeam").value.trim(); saveCfg();
+  cur = {id:"p"+Date.now().toString(36), start:Date.now(), end:null, status:"active", pausedMs:0, pauseStart:null,
+    agent:cfg.agent, team:cfg.team, area:cfg.area, mode:$("#sMode").value, objective:$("#sObj").value.trim(), track:[], obs:[]};
+  patrols.unshift(cur);
+  $("#dStart").close(); view = "home"; startWatch(); render();
+  try{ await putP(cur); }catch(e){ showErr("Sauvegarde impossible : " + e.message); }
+}
+function togglePause(){
+  if(!cur) return;
+  if(cur.status==="active"){ cur.status="paused"; cur.pauseStart=Date.now(); stopWatch(); }
+  else { cur.pausedMs += Date.now()-cur.pauseStart; cur.pauseStart=null; cur.status="active"; startWatch(); }
+  saveNow(); render();
+}
+function endPatrol(){
+  if(!cur || !confirm("Terminer cette patrouille ?")) return;
+  if(cur.status==="paused"){ cur.pausedMs += Date.now()-cur.pauseStart; cur.pauseStart=null; }
+  cur.status = "done"; cur.end = Date.now(); stopWatch(); saveNow();
+  detailId = cur.id; cur = null; view = "detail"; render();
+}
+function fillTypes(){
+  const c = CATS[$("#oCat").value];
+  $("#oType").innerHTML = c.types.map(t=>"<option>"+esc(t)+"</option>").join("");
+  $("#oSpWrap").hidden = !c.sp;
+}
+async function openObs(){
+  $("#oCat").innerHTML = Object.entries(CATS).map(([k,v])=>`<option value="${k}">${esc(v.label)}</option>`).join("");
+  $("#oSp").innerHTML = SPECIES.map(s=>"<option>"+esc(s)+"</option>").join("");
+  fillTypes(); $("#oN").value = 1; $("#oNote").value = ""; $("#oPhoto").value = ""; $("#oThumb").hidden = true; photoData = null;
+  $("#oPos").textContent = "Position en cours de lecture…";
+  $("#dObs").showModal();
+  const p = await getPos();
+  $("#oPos").textContent = p ? "Position prise : ± "+Math.round(p.acc)+" m · "+fmtCoord(p.lat,p.lon) : "Position indisponible : l'observation sera enregistrée sans coordonnées.";
+}
+async function saveObs(){
+  const p = await getPos(), cat = $("#oCat").value;
+  cur.obs.push({id:"o"+Date.now().toString(36), t:Date.now(), lat:p?p.lat:null, lon:p?p.lon:null, acc:p?p.acc:null,
+    cat, type:$("#oType").value, sp:CATS[cat].sp?$("#oSp").value:"", n:parseInt($("#oN").value)||1, note:$("#oNote").value.trim(), photo:photoData});
+  saveNow(); $("#dObs").close(); render();
+}
+function resize(file, max=900){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = () => {
+      const r = Math.min(1, max/Math.max(img.width,img.height)), c = document.createElement("canvas");
+      c.width = Math.round(img.width*r); c.height = Math.round(img.height*r);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(img.src); res(c.toDataURL("image/jpeg",.7));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+$("#oPhoto").addEventListener("change", async ev=>{
+  const f = ev.target.files[0]; if(!f) return;
+  photoData = await resize(f); const t = $("#oThumb"); t.src = photoData; t.hidden = false;
+});
+
+/* ---------- Export ---------- */
+const stamp = p => { const d=new Date(p.start), z=n=>String(n).padStart(2,"0"); return "patrouille_"+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"_"+z(d.getHours())+z(d.getMinutes()); };
+function mkData(p){
+  const n = stamp(p), out = [
+    {name:n+".gpx", type:"application/gpx+xml", text:toGPX(p)},
+    {name:n+".csv", type:"text/csv", text:toCSV(p)},
+    {name:n+".geojson", type:"application/geo+json", text:toGeoJSON(p)},
+    {name:n+".json", type:"application/json", text:JSON.stringify(p)}
+  ];
+  const z = toShapefileZip(p);
+  if(z) out.push({name:n+"_shp.zip", type:"application/zip", bytes:z});
+  return out;
+}
+function b64(bytes){
+  let s = ""; for(let i=0;i<bytes.length;i+=8192) s += String.fromCharCode.apply(null, bytes.subarray(i,i+8192));
+  return btoa(s);
+}
+function download(d){
+  const f = new File([d.bytes || d.text], d.name, {type:d.type});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+/* Android : écrit les fichiers dans le cache puis ouvre le partage du téléphone */
+async function nativeShare(list, title){
+  const FS = getPlugin("Filesystem"), SH = getPlugin("Share");
+  if(!FS || !SH) throw new Error("Plugins de partage introuvables dans l'application");
+  const uris = [];
+  for(const d of list){
+    const opt = d.bytes ? {path:d.name, data:b64(d.bytes), directory:"CACHE"} : {path:d.name, data:d.text, directory:"CACHE", encoding:"utf8"};
+    const r = await FS.writeFile(opt);
+    uris.push(r.uri);
+  }
+  await SH.share({title:title||"Patrouille", dialogTitle:"Partager", files:uris});
+}
+function reportErr(e){
+  const m = (e && e.message) || String(e);
+  if((e && e.name==="AbortError") || /cancel/i.test(m)) return;
+  showErr("Partage impossible : " + m);
+}
+async function outFiles(list, title){
+  try{
+    if(NATIVE){ await nativeShare(list, title); return; }
+    if(navigator.canShare){
+      const files = list.map(d=>new File([d.bytes || d.text], d.name, {type:d.type}));
+      if(navigator.canShare({files})){ await navigator.share({files, title:title||"Patrouille"}); return; }
+    }
+    list.forEach(download);
+  }catch(e){ reportErr(e); }
+}
+async function shareText(text, title){
+  try{
+    if(NATIVE){
+      const SH = getPlugin("Share"); if(!SH) throw new Error("Plugin de partage introuvable");
+      await SH.share({title:title, text:text, dialogTitle:"Envoyer le rapport"}); return;
+    }
+    if(navigator.share){ await navigator.share({title:title, text:text}); return; }
+    if(navigator.clipboard){ await navigator.clipboard.writeText(text); alert("Résumé copié. Collez-le dans WhatsApp."); return; }
+    alert(text);
+  }catch(e){ reportErr(e); }
+}
+function exportP(id, mode){
+  const p = patrols.find(x=>x.id===id); if(!p) return;
+  const list = mkData(p).filter(d=>d.name.endsWith("."+mode));
+  if(!list.length){ showErr("Aucun point à exporter pour ce format (pas de position enregistrée)."); return; }
+  outFiles(list, "Patrouille");
+}
+function shareP(id){
+  const p = patrols.find(x=>x.id===id); if(!p) return;
+  outFiles(mkData(p).filter(d=>/\.(gpx|csv|geojson)$/.test(d.name)), "Patrouille");
+}
+
+/* ---------- Mini rapport ---------- */
+function catSummary(p){
+  const c = {}; p.obs.forEach(o=>{ c[o.cat] = (c[o.cat]||0) + 1; });
+  return Object.keys(CATS).filter(k=>c[k]).map(k=>({label:CATS[k].label, n:c[k]}));
+}
+function coordTxt(o){ return o.lat==null ? "sans position" : fmtCoord(o.lat,o.lon)+(o.acc!=null?" (± "+Math.round(o.acc)+" m)":""); }
+function obsLine(o){
+  return new Date(o.t).toLocaleTimeString("fr-FR",{timeStyle:"short"}) + " · " + o.type +
+    (o.sp && o.sp!=="Non précisée" ? " · " + o.sp : "") + (o.n>1 ? " × " + o.n : "") + (o.note ? " · " + o.note : "") + " · " + coordTxt(o);
+}
+function reportTextOf(p){
+  const L = [];
+  L.push("RAPPORT DE PATROUILLE");
+  L.push("Début : " + fdate(p.start) + (p.end ? "  Fin : " + fdate(p.end) : ""));
+  L.push("Durée : " + fmtDur(activeMs(p, Date.now())) + " · Distance : " + fmtKm(trackLen(p.track)));
+  if(p.agent) L.push("Agent : " + p.agent + (p.team ? " · Équipe : " + p.team : ""));
+  if(p.area) L.push("Secteur : " + p.area);
+  L.push("Mode : " + p.mode + (p.objective ? " · Objectif : " + p.objective : ""));
+  L.push("");
+  L.push("Observations : " + p.obs.length);
+  catSummary(p).forEach(c=>L.push("- " + c.label + " : " + c.n));
+  if(p.obs.length){ L.push(""); L.push("Détail :"); p.obs.forEach((o,i)=>L.push((i+1) + ". " + obsLine(o))); }
+  L.push("");
+  L.push("Établi avec l'application Patrouille forêt");
+  L.push(AUTHOR + " · WhatsApp " + WA_SHOW);
+  return L.join("\n");
+}
+function reportText(id){
+  const p = patrols.find(x=>x.id===id); if(p) shareText(reportTextOf(p), "Rapport de patrouille");
+}
+function reportHTMLOf(p){
+  let img = "";
+  try{ const cv = document.createElement("canvas"); drawMap(cv, p, null, 720, 420); img = cv.toDataURL("image/png"); }catch(e){}
+  const rows = p.obs.map((o,i)=>`<tr><td>${i+1}</td><td>${esc(new Date(o.t).toLocaleTimeString("fr-FR",{timeStyle:"short"}))}</td><td>${esc((CATS[o.cat]||{}).label||o.cat)}</td>
+    <td>${esc(o.type)}${o.sp&&o.sp!=="Non précisée"?"<br>"+esc(o.sp):""}${o.n>1?" × "+o.n:""}${o.note?"<br><i>"+esc(o.note)+"</i>":""}</td><td>${esc(coordTxt(o))}</td>
+    <td>${o.photo?`<img src="${o.photo}" alt="">`:""}</td></tr>`).join("");
+  const cats = catSummary(p).map(c=>`<li>${esc(c.label)} : <b>${c.n}</b></li>`).join("");
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport de patrouille</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;color:#17221D;max-width:760px;margin:0 auto;padding:16px}h1{color:#24533F;font-size:24px;margin:0 0 4px}h2{color:#24533F;font-size:18px;margin:22px 0 6px}
+.meta{color:#55625B;margin:0 0 12px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #CBD2C4;padding:6px 8px;vertical-align:top;text-align:left;font-size:14px}th{background:#EFF1E9}
+.k{display:flex;gap:10px;flex-wrap:wrap}.k div{flex:1;min-width:120px;border:1px solid #CBD2C4;border-radius:8px;padding:8px;text-align:center}.k b{display:block;font-size:20px}
+img{max-width:100%}td img{width:110px;border-radius:4px}footer{margin-top:26px;border-top:1px solid #CBD2C4;padding-top:10px;color:#55625B;font-size:14px}</style></head><body>
+<h1>Rapport de patrouille</h1>
+<p class="meta">${esc(fdate(p.start))}${p.end?" → "+esc(fdate(p.end)):""}<br>${p.agent?"Agent : "+esc(p.agent)+(p.team?" · Équipe : "+esc(p.team):"")+"<br>":""}${p.area?"Secteur : "+esc(p.area)+"<br>":""}Mode : ${esc(p.mode)}${p.objective?" · Objectif : "+esc(p.objective):""}</p>
+<div class="k"><div><b>${esc(fmtDur(activeMs(p,Date.now())))}</b>durée</div><div><b>${esc(fmtKm(trackLen(p.track)))}</b>distance</div><div><b>${p.obs.length}</b>observations</div></div>
+${img?`<h2>Tracé</h2><img src="${img}" alt="Tracé de la patrouille">`:""}
+<h2>Synthèse</h2>${cats?"<ul>"+cats+"</ul>":"<p>Aucune observation.</p>"}
+${p.obs.length?`<h2>Observations</h2><table><tr><th>N°</th><th>Heure</th><th>Catégorie</th><th>Détail</th><th>Position</th><th>Photo</th></tr>${rows}</table>`:""}
+<footer>Établi avec l'application Patrouille forêt<br>${esc(AUTHOR)} · WhatsApp ${esc(WA_SHOW)}</footer></body></html>`;
+}
+function reportHtml(id){
+  const p = patrols.find(x=>x.id===id); if(!p) return;
+  outFiles([{name:stamp(p)+"_rapport.html", type:"text/html", text:reportHTMLOf(p)}], "Rapport de patrouille");
+}
+async function delPatrol(id){
+  if(!confirm("Supprimer définitivement cette patrouille ?")) return;
+  await delP(id); patrols = patrols.filter(p=>p.id!==id); view = "hist"; render();
+}
+async function exportAll(){
+  outFiles([{name:"patrouilles_sauvegarde.json", type:"application/json", text:JSON.stringify({export:new Date().toISOString(), patrols, checks, posts:cfg.posts})}], "Sauvegarde des patrouilles");
+}
+
+/* ---------- Poste de contrôle (postes de surveillance fixes) ---------- */
+const vlab = v => v==="Piéton" ? "À pied" : v;
+const VEH = ["Moto","Voiture","Pick-up","Camion","Minibus","Piéton","Autre"];
+const IDS = ["CNI","Passeport","Permis de conduire","Carte d'électeur","Autre","Aucune"];
+const RES = {
+  ras:{label:"RAS", col:"--ok"},
+  avert:{label:"Avertissement", col:"--warn"},
+  saisie:{label:"Saisie", col:"--infractions"},
+  pv:{label:"Procès-verbal", col:"--infractions"}
+};
+let checks = [], useLSC = false, ckPhoto = {cargo:null, res:null}, qC = "", qP = "day", ckSaving = false, ckPos = null, ckLimit = 30, ckTimer = null;
+const LSC = "patrouille:checks";
+const lsAllC = () => { try{ return JSON.parse(localStorage.getItem(LSC)||"[]"); }catch(e){ return []; } };
+const lsSetC = a => { try{ localStorage.setItem(LSC, JSON.stringify(a)); }catch(e){ showErr("Stockage plein ou indisponible"); } };
+function txc(mode, fn){
+  const work = DB.then(db => new Promise((res,rej)=>{
+    const t = db.transaction("checks",mode), rq = fn(t.objectStore("checks"));
+    t.oncomplete = () => res(rq && rq.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  }));
+  const limit = new Promise((_,rej)=>setTimeout(()=>rej(new Error("délai dépassé")), 5000));
+  return Promise.race([work, limit]);
+}
+async function putC(c){
+  if(!useLSC){ try{ return await txc("readwrite", s=>s.put(c)); }catch(e){ useLSC = true; } }
+  const a = lsAllC().filter(x=>x.id!==c.id); a.push(c); lsSetC(a);
+}
+async function allC(){
+  if(!useLSC){ try{ return await txc("readonly", s=>s.getAll()); }catch(e){ useLSC = true; } }
+  return lsAllC();
+}
+async function delC(id){
+  if(!useLSC){ try{ return await txc("readwrite", s=>s.delete(id)); }catch(e){ useLSC = true; } }
+  lsSetC(lsAllC().filter(x=>x.id!==id));
+}
+
+const posQuick = ms => Promise.race([getPos(), new Promise(r=>setTimeout(()=>r(null), ms))]);
+function thumbOf(url, max){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = () => { const r = Math.min(1, max/Math.max(img.width,img.height)), c = document.createElement("canvas");
+      c.width = Math.round(img.width*r); c.height = Math.round(img.height*r); c.getContext("2d").drawImage(img,0,0,c.width,c.height); res(c.toDataURL("image/jpeg",.6)); };
+    img.onerror = () => res(null); img.src = url;
+  });
+}
+const normPlate = s => String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+const dayStart = t => { const d = new Date(t); d.setHours(0,0,0,0); return d.getTime(); };
+function scopeList(){
+  const now = Date.now(), from = qP==="day" ? dayStart(now) : qP==="week" ? now-7*864e5 : 0;
+  const q = qC.trim().toLowerCase(), qp = normPlate(qC);
+  return checks.filter(c => c.t>=from && (!cfg.post || c.post===cfg.post) &&
+    (!q || (c.name||"").toLowerCase().indexOf(q)>=0 || (qp && normPlate(c.plate).indexOf(qp)>=0) || (c.idNum||"").toLowerCase().indexOf(q)>=0))
+    .sort((a,b)=>b.t-a.t);
+}
+function ckStats(l){
+  return {n:l.length, pers:l.reduce((s,c)=>s+1+(c.pax||0),0),
+    walk:l.filter(c=>c.vtype==="Piéton").length,
+    veh:l.filter(c=>c.vtype && c.vtype!=="Piéton").length,
+    inf:l.filter(c=>c.res==="saisie" || c.res==="pv").length};
+}
+const ckTitle = c => (c.vtype && c.vtype!=="Piéton") ? c.vtype + (c.plate ? " " + c.plate : "") : "À pied";
+const ckSub = c => [c.name, c.pax>0 ? "+" + c.pax + " passager" + (c.pax>1?"s":"") : "", c.cargo].filter(Boolean).join(" · ");
+const ckRow = c => { const r = RES[c.res] || RES.ras;
+  return `<div class="obs" style="--c:var(${r.col});cursor:pointer" onclick="viewCk('${c.id}')"><div><b>${esc(ckTitle(c))}</b>${esc(ckSub(c))}
+  <small>${esc(fdate(c.t))} · ${esc(r.label)}${cfg.post ? "" : " · " + esc(c.post||"")}</small></div>
+  ${(c.rthumb||c.cthumb) ? `<img src="${c.rthumb||c.cthumb}" alt="">` : ""}</div>`; };
+
+function refreshChecks(){
+  const st = $("#pStats"), ls = $("#cList"); if(!st || !ls) return;
+  const l = scopeList(), s = ckStats(l);
+  st.innerHTML = [[s.n,"contrôles"],[s.pers,"personnes"],[s.walk,"à pied"],[s.veh,"véhicules"],[s.inf,"saisies / PV"]]
+    .map(a=>`<div class="stat"><b>${a[0]}</b><span>${a[1]}</span></div>`).join("");
+  ls.innerHTML = l.length ? l.slice(0,ckLimit).map(ckRow).join("") + (l.length>ckLimit ? `<button class="btn alt" onclick="ckLimit+=30;refreshChecks()">Afficher plus (${l.length-ckLimit} restants)</button>` : "") : `<p class="note">Aucun contrôle pour cette période.</p>`;
+}
+function rPost(v){
+  $("#ttl").textContent = "Poste de contrôle";
+  const opts = `<option value="">(tous les postes)</option>` + cfg.posts.map(p=>`<option value="${esc(p.name)}"${p.name===cfg.post?" selected":""}>${esc(p.name)}</option>`).join("");
+  const per = [["day","Aujourd'hui"],["week","7 derniers jours"],["all","Tout"]].map(a=>`<option value="${a[0]}"${a[0]===qP?" selected":""}>${a[1]}</option>`).join("");
+  v.innerHTML = `<div class="card"><label for="pSel" style="margin-top:0">Poste de surveillance</label>
+    <select id="pSel" onchange="cfg.post=this.value;saveCfg();render()">${opts}</select>
+    <div class="row"><button class="btn alt" onclick="openPost()">+ Ajouter un poste</button>${cfg.post ? `<button class="btn alt" onclick="delPost()">Supprimer ce poste</button>` : ""}</div></div>
+    <button class="btn big" onclick="openCk()">+ Nouveau contrôle</button>
+    <h2>Contrôles</h2>
+    <select id="pPer" aria-label="Période" onchange="qP=this.value;ckLimit=30;refreshChecks()">${per}</select>
+    <div class="stats" id="pStats" style="margin-top:10px"></div>
+    <label for="qC" style="margin-top:0">Rechercher (plaque, nom, pièce)</label><input id="qC" value="${esc(qC)}" autocomplete="off" oninput="qC=this.value;ckLimit=30;clearTimeout(ckTimer);ckTimer=setTimeout(refreshChecks,250)">
+    <div id="cList" style="margin-top:10px"></div>
+    <h2>Rapports</h2>
+    <button class="btn" onclick="ckExport('txt')">Résumé (WhatsApp)</button>
+    <div class="row"><button class="btn alt" onclick="ckExport('html')">Rapport complet</button><button class="btn alt" onclick="ckExport('csv')">Excel (CSV)</button></div>
+    <p class="note">Les rapports et l'export CSV suivent le poste et la période choisis ci-dessus.</p>`;
+  refreshChecks();
+}
+
+/* --- Postes --- */
+function openPost(){ $("#pName").value = ""; $("#dPost").showModal(); ckPos = null; getPos().then(p=>{ ckPos = p; }); }
+async function savePost(){
+  const name = $("#pName").value.trim();
+  if(!name){ alert("Saisissez le nom du poste."); return; }
+  if(cfg.posts.some(p=>p.name.toLowerCase()===name.toLowerCase())){ alert("Ce poste existe déjà."); return; }
+  const p = ckPos || await posQuick(1500);
+  cfg.posts.push({name:name, lat:p?p.lat:null, lon:p?p.lon:null});
+  cfg.post = name; saveCfg(); $("#dPost").close(); render();
+}
+function delPost(){
+  if(!cfg.post || !confirm("Supprimer le poste « " + cfg.post + " » ? Les contrôles déjà enregistrés sont conservés.")) return;
+  cfg.posts = cfg.posts.filter(p=>p.name!==cfg.post); cfg.post = ""; saveCfg(); render();
+}
+
+/* --- Nouveau contrôle --- */
+function ckToggle(){
+  const walk = $("#kVT").value==="Piéton";
+  $("#kVeh").hidden = walk;
+  const lb = document.querySelector('label[for="kCargo"]'); if(lb) lb.textContent = walk ? "Nature du produit (porté ou dans les bagages)" : "Nature du produit";
+  ckHist();
+}
+function ckHist(){
+  const p = normPlate($("#kPl").value), n = $("#kIdN").value.trim().toLowerCase(), box = $("#kHist");
+  const walk = $("#kVT").value==="Piéton";
+  const m = checks.filter(c => (!walk && p.length>=3 && normPlate(c.plate)===p) || (n.length>=4 && (c.idNum||"").trim().toLowerCase()===n));
+  if(!m.length){ box.className = "note"; box.textContent = ""; return; }
+  m.sort((a,b)=>b.t-a.t); const l = m[0];
+  box.className = "card warn note";
+  box.textContent = "Déjà contrôlé " + m.length + " fois. Dernier contrôle : " + fdate(l.t) + " · " + (RES[l.res]||RES.ras).label + (l.rnote ? " · " + l.rnote : "");
+}
+async function openCk(){
+  if(!cfg.post){ alert("Choisissez d'abord un poste de surveillance, ou ajoutez-en un."); return; }
+  $("#kIdT").innerHTML = IDS.map(s=>"<option>"+esc(s)+"</option>").join("");
+  $("#kVT").innerHTML = VEH.map(s=>`<option value="${esc(s)}">${esc(vlab(s))}</option>`).join("");
+  $("#kRes").innerHTML = Object.keys(RES).map(k=>`<option value="${k}">${esc(RES[k].label)}</option>`).join("");
+  ["#kName","#kIdN","#kFrom","#kTo","#kMot","#kPl","#kBr","#kCol","#kDr","#kCargo","#kNote"].forEach(s=>{ $(s).value = ""; });
+  $("#kPax").value = 0; $("#kPhC").value = ""; $("#kPhR").value = ""; $("#kThC").hidden = true; $("#kThR").hidden = true;
+  ckPhoto = {cargo:null, res:null}; ckToggle();
+  $("#kPos").textContent = "Poste : " + cfg.post + " · position en cours de lecture…";
+  $("#dCk").showModal();
+  ckPos = null;
+  const p = await getPos(); ckPos = p;
+  $("#kPos").textContent = "Poste : " + cfg.post + (p ? " · GPS ± " + Math.round(p.acc) + " m" : " · GPS indisponible : la position du poste sera utilisée");
+}
+$("#kPhC").addEventListener("change", async ev=>{
+  const f = ev.target.files[0]; if(!f) return;
+  ckPhoto.cargo = await resize(f, 640); ckPhoto.cargoT = await thumbOf(ckPhoto.cargo, 110); const t = $("#kThC"); t.src = ckPhoto.cargo; t.hidden = false;
+});
+$("#kPhR").addEventListener("change", async ev=>{
+  const f = ev.target.files[0]; if(!f) return;
+  ckPhoto.res = await resize(f, 640); ckPhoto.resT = await thumbOf(ckPhoto.res, 110); const t = $("#kThR"); t.src = ckPhoto.res; t.hidden = false;
+});
+async function saveCk(){
+  if(ckSaving) return;
+  const vt = $("#kVT").value, walk = vt==="Piéton", v = s => $(s).value.trim();
+  if(!v("#kName") && !v("#kPl") && !v("#kCargo") && !confirm("Ni nom, ni plaque, ni chargement saisi. Enregistrer quand même ?")) return;
+  ckSaving = true; $("#kSave").disabled = true;
+  try{
+    const p = ckPos || await posQuick(1500), post = cfg.posts.find(x=>x.name===cfg.post) || {};
+    const c = {id:"c"+Date.now().toString(36), t:Date.now(), post:cfg.post, postLat:post.lat==null?null:post.lat, postLon:post.lon==null?null:post.lon, agent:cfg.agent||"",
+      name:v("#kName"), idType:$("#kIdT").value, idNum:v("#kIdN"), from:v("#kFrom"), to:v("#kTo"), motif:v("#kMot"),
+      vtype:vt, plate:walk?"":v("#kPl").toUpperCase(), brand:walk?"":v("#kBr"), color:walk?"":v("#kCol"), driver:walk?"":v("#kDr"), pax:walk?0:(parseInt($("#kPax").value)||0),
+      cargo:v("#kCargo"), cphoto:ckPhoto.cargo, cthumb:ckPhoto.cargoT||null, res:$("#kRes").value, rnote:v("#kNote"), rphoto:ckPhoto.res, rthumb:ckPhoto.resT||null,
+      lat:p?p.lat:null, lon:p?p.lon:null, acc:p?p.acc:null};
+    checks.unshift(c); $("#dCk").close();
+    try{ await putC(c); }catch(e){ showErr("Sauvegarde impossible : " + e.message); }
+    render();
+  } finally { ckSaving = false; $("#kSave").disabled = false; }
+}
+function viewCk(id){
+  const c = checks.find(x=>x.id===id); if(!c) return;
+  const r = RES[c.res] || RES.ras, L = (k,val) => val ? `<div><b>${k} :</b> ${esc(val)}</div>` : "";
+  $("#dCkV").innerHTML = `<h2 style="margin-top:0">${esc(ckTitle(c))}</h2><span class="badge">${esc(r.label)}</span>
+    <div class="note" style="margin-top:8px">${esc(fdate(c.t))} · ${esc(c.post||"")}${c.agent ? " · " + esc(c.agent) : ""}<br>${esc(coordTxt(c))}</div>
+    <h2>Personne</h2>${L("Nom",c.name)}${L("Pièce",[c.idType,c.idNum].filter(Boolean).join(" "))}${L("Motif",c.motif)}
+    ${c.vtype!=="Piéton" ? `<h2>Véhicule</h2>${L("Type",c.vtype)}${L("Plaque",c.plate)}${L("Marque",c.brand)}${L("Couleur",c.color)}${L("Chauffeur",c.driver)}${L("Passagers",c.pax ? String(c.pax) : "")}` : ""}
+    ${(c.cargo||c.cphoto||c.from||c.to) ? `<h2>Produit transporté</h2>${L("Nature du produit",c.cargo)}${L("Provenance",c.from)}${L("Destination",c.to)}${c.cphoto ? `<img class="thumb" src="${c.cphoto}" alt="Photo du chargement">` : ""}` : ""}
+    <h2>Résultat</h2>${L("Observations",c.rnote)}${c.rphoto ? `<img class="thumb" src="${c.rphoto}" alt="Photo">` : ""}
+    <div class="row"><button class="btn alt" onclick="$('#dCkV').close()">Fermer</button><button class="btn danger" onclick="delCk('${c.id}')">Supprimer</button></div>`;
+  $("#dCkV").showModal();
+}
+async function delCk(id){
+  if(!confirm("Supprimer définitivement ce contrôle ?")) return;
+  await delC(id); checks = checks.filter(c=>c.id!==id); $("#dCkV").close(); render();
+}
+
+/* --- Rapports du poste --- */
+function ckName(){
+  const d = new Date(), z = n => String(n).padStart(2,"0");
+  const p = cfg.post ? cfg.post.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_") : "tous_postes";
+  return "controles_" + p + "_" + d.getFullYear() + z(d.getMonth()+1) + z(d.getDate());
+}
+const PERLAB = {day:"aujourd'hui", week:"7 derniers jours", all:"toute la période"};
+function ckCSV(l){
+  const H = ["Date","Heure","Poste","Agent","Nom","Pièce","Numéro pièce","Motif","Type de contrôle","Plaque","Marque","Couleur","Chauffeur","Passagers","Nature du produit","Provenance","Destination","Résultat","Observations","Latitude","Longitude","Coordonnées (système choisi)","UTM zone","UTM Est (m)","UTM Nord (m)"];
+  const q = s => { s = String(s==null?"":s); if(/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g,'""') + '"'; };
+  const z = n => String(n).padStart(2,"0");
+  const rows = l.slice().sort((a,b)=>a.t-b.t).map(c=>{ const d = new Date(c.t);
+    return [d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()), z(d.getHours())+":"+z(d.getMinutes()), c.post, c.agent, c.name, c.idType, c.idNum, c.motif,
+      vlab(c.vtype), c.plate, c.brand, c.color, c.driver, c.pax, c.cargo, c.from, c.to, (RES[c.res]||RES.ras).label, c.rnote,
+      c.lat==null ? "" : c.lat.toFixed(6), c.lon==null ? "" : c.lon.toFixed(6)].concat(coordCols(c.lat,c.lon)).map(q).join(";"); });
+  return "\uFEFF" + [H.map(q).join(";")].concat(rows).join("\r\n");
+}
+function ckCount(l, key){ const o = {}; l.forEach(c=>{ if(c[key]) o[c[key]] = (o[c[key]]||0) + 1; }); return o; }
+function ckText(l){
+  const s = ckStats(l), by = ckCount(l,"vtype"), rs = ckCount(l,"res");
+  const T = ["RAPPORT DU POSTE DE CONTRÔLE", "Poste : " + (cfg.post || "tous les postes"), "Période : " + PERLAB[qP], "Édité le : " + fdate(Date.now()), ""];
+  T.push("Contrôles : " + s.n + " · Personnes : " + s.pers);
+  T.push("Personnes contrôlées à pied : " + s.walk);
+  T.push("Véhicules contrôlés : " + s.veh);
+  Object.keys(by).filter(k=>k!=="Piéton").forEach(k=>T.push("   - " + k + " : " + by[k]));
+  T.push(""); T.push("Résultats :");
+  Object.keys(RES).filter(k=>rs[k]).forEach(k=>T.push("- " + RES[k].label + " : " + rs[k]));
+  const pr = l.filter(c=>c.cargo || c.from || c.to || c.res==="saisie" || c.res==="pv").sort((a,b)=>a.t-b.t);
+  if(pr.length){
+    T.push(""); T.push("Produits contrôlés :");
+    pr.forEach((c,i)=>T.push((i+1) + ". " + fdate(c.t) + " · " + ckTitle(c) + (c.name ? " · " + c.name : "") +
+      "\n   Nature du produit : " + (c.cargo || "non précisée") +
+      "\n   Provenance : " + (c.from || "non précisée") + "\n   Destination : " + (c.to || "non précisée") +
+      "\n   Résultat : " + (RES[c.res]||RES.ras).label + (c.rnote ? " (" + c.rnote + ")" : "")));
+  }
+  T.push(""); T.push("Établi avec l'application Patrouille forêt"); T.push(AUTHOR + " · WhatsApp " + WA_SHOW);
+  return T.join("\n");
+}
+function ckReportHTML(l){
+  const s = ckStats(l), by = ckCount(l,"vtype"), rs = ckCount(l,"res");
+  const rows = l.slice().sort((a,b)=>a.t-b.t).map((c,i)=>`<tr><td>${i+1}</td><td>${esc(fdate(c.t))}</td>
+    <td>${esc(c.name||"")}${c.idNum ? "<br>" + esc((c.idType||"") + " " + c.idNum) : ""}</td>
+    <td>${esc(ckTitle(c))}${c.brand||c.color ? "<br>" + esc([c.brand,c.color].filter(Boolean).join(" ")) : ""}${c.pax ? "<br>+" + c.pax + " passager(s)" : ""}</td>
+    <td>${esc(c.cargo||"")}${c.cphoto ? `<br><img src="${c.cphoto}" alt="">` : ""}</td><td>${esc(c.from||"")}</td><td>${esc(c.to||"")}</td>
+    <td><b>${esc((RES[c.res]||RES.ras).label)}</b>${c.rnote ? "<br>" + esc(c.rnote) : ""}${c.rphoto ? `<br><img src="${c.rphoto}" alt="">` : ""}</td></tr>`).join("");
+  const li = o => Object.keys(o).map(k=>`<li>${esc(vlab(k))} : <b>${o[k]}</b></li>`).join("");
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rapport du poste de contrôle</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;color:#17221D;max-width:900px;margin:0 auto;padding:16px}h1{color:#24533F;font-size:24px;margin:0 0 4px}h2{color:#24533F;font-size:18px;margin:22px 0 6px}
+.meta{color:#55625B;margin:0 0 12px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #CBD2C4;padding:6px 8px;vertical-align:top;text-align:left;font-size:14px}th{background:#EFF1E9}
+.k{display:flex;gap:10px;flex-wrap:wrap}.k div{flex:1;min-width:110px;border:1px solid #CBD2C4;border-radius:8px;padding:8px;text-align:center}.k b{display:block;font-size:20px}
+img{max-width:100%}td img{width:110px;border-radius:4px;margin-top:4px}footer{margin-top:26px;border-top:1px solid #CBD2C4;padding-top:10px;color:#55625B;font-size:14px}</style></head><body>
+<h1>Rapport du poste de contrôle</h1>
+<p class="meta">Poste : ${esc(cfg.post || "tous les postes")}<br>Période : ${esc(PERLAB[qP])}<br>Édité le ${esc(fdate(Date.now()))}${cfg.agent ? " · " + esc(cfg.agent) : ""}</p>
+<div class="k"><div><b>${s.n}</b>contrôles</div><div><b>${s.pers}</b>personnes</div><div><b>${s.walk}</b>à pied</div><div><b>${s.veh}</b>véhicules</div><div><b>${s.inf}</b>saisies / PV</div></div>
+<h2>Synthèse</h2>${l.length ? `<p>Contrôles par type (à pied ou véhicule) :</p><ul>${li(by)}</ul><p>Résultats :</p><ul>${Object.keys(RES).filter(k=>rs[k]).map(k=>`<li>${esc(RES[k].label)} : <b>${rs[k]}</b></li>`).join("")}</ul>` : "<p>Aucun contrôle.</p>"}
+${l.length ? `<h2>Détail des contrôles</h2><table><tr><th>N°</th><th>Date et heure</th><th>Personne</th><th>Véhicule</th><th>Nature du produit</th><th>Provenance</th><th>Destination</th><th>Résultat</th></tr>${rows}</table>` : ""}
+<footer>Établi avec l'application Patrouille forêt<br>${esc(AUTHOR)} · WhatsApp ${esc(WA_SHOW)}</footer></body></html>`;
+}
+function ckExport(kind){
+  const l = scopeList();
+  if(!l.length){ showErr("Aucun contrôle à exporter pour ce poste et cette période."); return; }
+  if(kind==="txt") shareText(ckText(l), "Rapport du poste de contrôle");
+  else if(kind==="html") outFiles([{name:ckName()+"_rapport.html", type:"text/html", text:ckReportHTML(l)}], "Rapport du poste de contrôle");
+  else outFiles([{name:ckName()+".csv", type:"text/csv", text:ckCSV(l)}], "Contrôles du poste");
+}
+
+/* ---------- Écrans ---------- */
+const fdate = t => new Date(t).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"});
+const obsHTML = o => `<div class="obs" style="--c:var(${(CATS[o.cat]||{}).col||"--muted"})">
+  <div><b>${esc(o.type)}</b>${o.sp&&o.sp!=="Non précisée"?esc(o.sp)+(o.n>1?" × "+o.n:""):(o.n>1?"× "+o.n:"")}${o.note?"<br>"+esc(o.note):""}
+  <small>${new Date(o.t).toLocaleTimeString("fr-FR",{timeStyle:"short"})}${o.acc!=null?" · ± "+Math.round(o.acc)+" m":" · sans position"}</small></div>
+  ${o.photo?`<img src="${o.photo}" alt="Photo de l'observation">`:""}</div>`;
+
+function rHome(v){
+  $("#ttl").textContent = "Patrouille";
+  if(!cur){
+    const done = patrols.filter(p=>p.status==="done"), km = done.reduce((s,p)=>s+trackLen(p.track),0);
+    v.innerHTML = `<div class="card"><p style="margin-top:0">Enregistrez votre trace, vos observations et vos photos. Tout reste sur le téléphone, sans réseau.</p>
+      <button class="btn big" onclick="openStart()">Démarrer une patrouille</button></div>
+      <div class="stats"><div class="stat"><b>${done.length}</b><span>patrouilles</span></div><div class="stat"><b>${fmtKm(km)}</b><span>parcourus</span></div><div class="stat"><b>${done.reduce((s,p)=>s+p.obs.length,0)}</b><span>observations</span></div></div>
+      <div class="card warn note">${NATIVE?"La trace continue en arrière-plan, écran éteint. Une notification reste affichée pendant la patrouille.":"Pendant une patrouille, gardez l'application ouverte et l'écran allumé. Si elle passe en arrière-plan, l'enregistrement de la trace s'arrête."}</div>`;
+    return;
+  }
+  const paused = cur.status==="paused";
+  v.innerHTML = `<div class="stats"><div class="stat"><b id="stDur"></b><span>durée</span></div><div class="stat"><b id="stDist"></b><span>distance</span></div><div class="stat"><b id="stObs"></b><span>observations</span></div></div>
+    ${paused?`<div class="card warn"><b>Patrouille en pause.</b> La trace n'est pas enregistrée.</div>`:""}
+    <div class="note" id="stPos" style="margin:8px 2px 0"></div>
+    <canvas id="map" aria-label="Tracé de la patrouille"></canvas>
+    <div style="margin-top:12px"><button class="btn big" onclick="openObs()" ${paused?"disabled":""}>+ Ajouter une observation</button></div>
+    <div class="row"><button class="btn alt" onclick="togglePause()">${paused?"Reprendre":"Pause"}</button><button class="btn danger" onclick="endPatrol()">Terminer</button></div>
+    <h2>Dernières observations</h2>${cur.obs.length?cur.obs.slice(-5).reverse().map(obsHTML).join(""):`<p class="note">Aucune observation pour l'instant.</p>`}`;
+  refreshStats(); requestAnimationFrame(()=>drawMap($("#map"),cur,fix));
+}
+function refreshStats(){
+  if(!cur||!$("#stDur")) return;
+  $("#stDur").textContent = fmtDur(activeMs(cur,Date.now()));
+  $("#stDist").textContent = fmtKm(trackLen(cur.track));
+  $("#stObs").textContent = cur.obs.length;
+  const sp = $("#stPos"); if(sp) sp.textContent = fix ? fmtCoord(fix.lat, fix.lon) : "Position : recherche du signal…";
+}
+function rHist(v){
+  $("#ttl").textContent = "Historique";
+  const list = patrols.filter(p=>p.status==="done");
+  v.innerHTML = list.length ? list.map(p=>`<button class="item" onclick="detailId='${p.id}';view='detail';render()"><b>${fdate(p.start)}</b>
+    <small>${esc(p.mode)} · ${fmtKm(trackLen(p.track))} · ${p.obs.length} observation${p.obs.length>1?"s":""}${p.agent?" · "+esc(p.agent):""}</small></button>`).join("")
+    : `<p class="note">Aucune patrouille terminée.</p>`;
+}
+function rDetail(v){
+  const p = patrols.find(x=>x.id===detailId); if(!p){ view="hist"; return render(); }
+  $("#ttl").textContent = "Patrouille";
+  v.innerHTML = `<button class="btn alt" style="min-height:44px;width:auto;margin-bottom:12px" onclick="view='hist';render()">← Historique</button>
+    <div class="card"><b>${fdate(p.start)}</b> <span class="badge">${esc(p.mode)}</span>
+    <div class="note">${p.agent?"Agent : "+esc(p.agent)+"<br>":""}${p.team?"Équipe : "+esc(p.team)+"<br>":""}${p.objective?"Objectif : "+esc(p.objective):""}</div></div>
+    <div class="stats"><div class="stat"><b>${fmtDur(activeMs(p,Date.now()))}</b><span>durée</span></div><div class="stat"><b>${fmtKm(trackLen(p.track))}</b><span>distance</span></div><div class="stat"><b>${p.obs.length}</b><span>observations</span></div></div>
+    <canvas id="map" aria-label="Tracé de la patrouille"></canvas>
+    <h2>Rapport</h2>
+    <div class="row"><button class="btn" onclick="reportText('${p.id}')">Résumé (WhatsApp)</button><button class="btn alt" onclick="reportHtml('${p.id}')">Rapport complet</button></div>
+    <h2>Exporter</h2>
+    <button class="btn" onclick="shareP('${p.id}')">Partager (GPX, CSV, GeoJSON)</button>
+    <div class="row"><button class="btn alt" onclick="exportP('${p.id}','gpx')">GPX</button><button class="btn alt" onclick="exportP('${p.id}','csv')">CSV</button><button class="btn alt" onclick="exportP('${p.id}','geojson')">GeoJSON</button></div>
+    <div class="row"><button class="btn alt" onclick="exportP('${p.id}','zip')">Shapefile (SHP, ZIP)</button></div>
+    <h2>Observations</h2>${p.obs.length?p.obs.map(obsHTML).join(""):`<p class="note">Aucune observation.</p>`}
+    <button class="btn danger" style="margin-top:16px" onclick="delPatrol('${p.id}')">Supprimer cette patrouille</button>`;
+  requestAnimationFrame(()=>drawMap($("#map"),p,null));
+}
+function rCfg(v){
+  $("#ttl").textContent = "Réglages";
+  v.innerHTML = `<div class="card"><label for="cAgent" style="margin-top:0">Agent</label><input id="cAgent" value="${esc(cfg.agent)}">
+    <label for="cTeam">Équipe</label><input id="cTeam" value="${esc(cfg.team)}">
+    <label for="cArea">Aire protégée ou secteur</label><input id="cArea" value="${esc(cfg.area)}">
+    <button class="btn" style="margin-top:14px" onclick="cfg.agent=$('#cAgent').value.trim();cfg.team=$('#cTeam').value.trim();cfg.area=$('#cArea').value.trim();saveCfg();applyLook();this.textContent='Enregistré'">Enregistrer</button></div>
+    <h2>Coordonnées GPS</h2><div class="card"><label for="cCoord" style="margin-top:0">Système d'affichage</label>
+    <select id="cCoord" onchange="cfg.coord=this.value;saveCfg();$('#cPrev').textContent=coordPreview();$('#cZoneBox').style.display=this.value==='utm'?'block':'none'">${Object.keys(COORD_LABELS).map(k=>`<option value="${k}" ${(cfg.coord||"dd")===k?"selected":""}>${COORD_LABELS[k]}</option>`).join("")}</select>
+    <div id="cZoneBox" style="display:${cfg.coord==="utm"?"block":"none"}"><label for="cZone">Zone UTM</label>
+    <select id="cZone" onchange="cfg.utmZone=this.value;saveCfg();$('#cPrev').textContent=coordPreview()"><option value="" ${!cfg.utmZone?"selected":""}>Automatique</option><option value="32" ${String(cfg.utmZone)==="32"?"selected":""}>Zone 32 N (6° à 12° E)</option><option value="33" ${String(cfg.utmZone)==="33"?"selected":""}>Zone 33 N (12° à 18° E)</option></select></div>
+    <p class="note" id="cPrev">${esc(coordPreview())}</p>
+    <p class="note">Pour comparer avec un GPS Garmin, choisissez le même format et la même zone. Les fichiers GPX, GeoJSON et Shapefile restent toujours en WGS84, degrés décimaux. Les exports CSV ajoutent les colonnes UTM.</p></div>
+    <h2>Fonds de carte</h2><div class="card"><label for="cBase" style="margin-top:0">Fond de carte</label>
+    <select id="cBase" onchange="cfg.base=this.value;saveCfg()"><option value="sat" ${(cfg.base||"osm")==="sat"?"selected":""}>Satellite (Esri)</option><option value="osm" ${(cfg.base||"osm")==="osm"?"selected":""}>Plan (OpenStreetMap)</option><option value="none" ${cfg.base==="none"?"selected":""}>Aucun (tracé seul)</option></select>
+    <label for="cRad">Zone à télécharger autour de moi</label>
+    <select id="cRad"><option value="1">Rayon 1 km</option><option value="3" selected>Rayon 3 km</option><option value="5">Rayon 5 km</option></select>
+    <button class="btn" style="margin-top:14px" onclick="dlZone()">Télécharger la zone (hors ligne)</button>
+    <p class="note" id="dlInfo"></p>
+    <button class="btn alt" onclick="clearTiles()">Effacer les cartes téléchargées</button>
+    <p class="note">Téléchargez la zone avec internet avant d'aller en forêt. Sans internet, seules les cartes déjà enregistrées s'affichent.</p></div>
+    <h2>Sauvegarde</h2><p class="note">Sauvegardez régulièrement vos patrouilles : si le téléphone est perdu ou réinitialisé, elles sont perdues.</p>
+    <button class="btn alt" onclick="exportAll()">Exporter toutes les données (JSON)</button>
+    <h2>À propos</h2><p class="foot" style="font-size:11px;margin:4px 0 0">Développé par Takoumbo Brice</p>`;
+  tCountInfo();
+}
+function applyLook(){ document.documentElement.style.setProperty("--k", ".88"); }
+function diag(){ return "v" + VERSION; }
+function render(){
+  applyLook();
+  const v = $("#view"), cv = view==="detail"?"hist":view;
+  document.querySelectorAll("#nav button").forEach(b=>{ if(b.dataset.v===cv) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  ({home:rHome,post:rPost,hist:rHist,detail:rDetail,cfg:rCfg})[view](v);
+  const dg = document.createElement("p"); dg.id = "diag"; dg.className = "foot"; dg.textContent = diag(); dg.dataset.build = BUILD; v.appendChild(dg);
+  const br = document.createElement("p"); br.className = "foot"; br.textContent = "Contact : bricetakoumbo285@gmail.com"; v.appendChild(br);
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("dialog").forEach(d=>{
+  if(typeof d.showModal !== "function"){
+    d.showModal = function(){ this.setAttribute("open",""); this.style.cssText = "position:fixed;top:4vh;left:3vw;right:3vw;margin:0 auto;overflow:auto;z-index:50;box-shadow:0 0 0 100vmax rgba(0,0,0,.5)"; };
+    d.close = function(){ this.removeAttribute("open"); this.style.cssText = ""; };
+  }
+});
+$("#nav").addEventListener("click", ev=>{ const b=ev.target.closest("button"); if(b){ view=b.dataset.v; render(); } });
+
+$("#dStart").addEventListener("close", ()=>{ if(!(cur && cur.status==="active")) stopWatch(); });
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden){ saveNow(); if(!(cur && cur.status==="active")) warmOff(); }
+  else if(cur && cur.status==="active"){ wakeOn(); if(watchId==null) startWatch(); }
+  else warmOn();
+});
+addEventListener("pagehide", saveNow);
+setInterval(()=>{ if(!fix && searchT0) updateLive(); }, 1000);
+setInterval(()=>{ if(view==="home" && cur){ refreshStats(); if(fix) updateLive(); } }, 1000);
+
+(async function init(){
+  try{ patrols = (await allP()).sort((a,b)=>b.start-a.start); }catch(e){ patrols = []; }
+  try{ checks = (await allC()).sort((a,b)=>b.t-a.t); }catch(e){ checks = []; }
+  cur = patrols.find(p=>p.status!=="done") || null;
+  if(cur && cur.status==="active") startWatch(); else warmOn();
+  render();
+})();
+
+if(!NATIVE && "serviceWorker" in navigator && location.protocol.startsWith("http")){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
