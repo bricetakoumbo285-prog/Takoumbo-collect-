@@ -18,13 +18,18 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm install
-      - run: npx cap add android
-      - name: Icône, écran de démarrage et logo
+      - name: PrÃ©parer les dossiers et les images
         run: |
-          mkdir -p assets
-          cp icon-only.png icon-foreground.png icon-background.png splash.png splash-dark.png assets/
-          cp logo.png www/logo.png
-          npx --yes @capacitor/assets generate --android
+          mkdir -p www scripts assets
+          if [ -f index.html ]; then cp index.html www/index.html; fi
+          if [ -f patch-android.js ]; then cp patch-android.js scripts/patch-android.js; fi
+          for f in icon-only.png icon-foreground.png icon-background.png splash.png splash-dark.png; do
+            if [ -f "$f" ]; then cp "$f" assets/; fi
+          done
+          if [ -f logo.png ]; then cp logo.png www/logo.png; fi
+          ls www assets scripts
+      - run: npx cap add android
+      - run: npx --yes @capacitor/assets generate --android
       - run: node scripts/patch-android.js
       - run: npx cap sync android
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
