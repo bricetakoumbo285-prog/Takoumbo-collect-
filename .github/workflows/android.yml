@@ -10,12 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Ranger les fichiers dans leurs dossiers
-        run: |
-          mkdir -p www scripts
-          if [ -f index.html ]; then mv index.html www/index.html; fi
-          if [ -f patch-android.js ]; then mv patch-android.js scripts/patch-android.js; fi
-          ls -R www scripts
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -25,6 +19,12 @@ jobs:
           java-version: 21
       - run: npm install
       - run: npx cap add android
+      - name: Icône, écran de démarrage et logo
+        run: |
+          mkdir -p assets
+          cp icon-only.png icon-foreground.png icon-background.png splash.png splash-dark.png assets/
+          cp logo.png www/logo.png
+          npx --yes @capacitor/assets generate --android
       - run: node scripts/patch-android.js
       - run: npx cap sync android
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
